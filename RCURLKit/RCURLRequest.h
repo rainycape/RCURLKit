@@ -8,8 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
-#define HTTP_RESPONSE_IS_OK(resp) ({ \
-    NSUInteger statusCode = [(NSHTTPURLResponse *)resp statusCode]; \
+#define HTTP_RESPONSE_IS_OK(response) ({ \
+    NSInteger statusCode = [response respondsToSelector:@selector(statusCode)] ? [(NSHTTPURLResponse *)response statusCode] : 0; \
     statusCode >= 200 && statusCode < 300; \
 })
 
