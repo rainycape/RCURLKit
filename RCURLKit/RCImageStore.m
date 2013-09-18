@@ -350,7 +350,7 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     NSUInteger theKey = [self cacheKeyForURL:theURL];
     CFDictionarySetValue(_cache, (void *)theKey, theImage);
     NSURLRequest *theRequest = [NSURLRequest requestWithURL:theURL];
-    [[RCURLCache sharedCache] storeCachedResponseWithResponse:response data:theData forRequest:theRequest];
+    [[RCURLCache sharedCache] storeResponse:response withData:theData forRequest:theRequest];
 }
 
 - (NSUInteger)cacheKeyForURL:(NSURL *)theURL

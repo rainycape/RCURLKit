@@ -238,12 +238,12 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
 {
     NSURLRequest *theRequest = [[NSURLRequest alloc] initWithURL:theURL];
     NSURLResponse *theResponse = [[NSHTTPURLResponse alloc] initWithURL:theURL statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:nil];
-    [self storeCachedResponseWithResponse:theResponse data:theData forRequest:theRequest];
+    [self storeResponse:theResponse withData:theData forRequest:theRequest];
     [theResponse release];
     [theRequest release];
 }
 
-- (void)storeCachedResponseWithResponse:(NSURLResponse *)response data:(NSData *)data forRequest:(NSURLRequest *)request
+- (void)storeResponse:(NSURLResponse *)response withData:(NSData *)data forRequest:(NSURLRequest *)request
 {
     NSCachedURLResponse *cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:data];
     [self storeCachedResponse:cachedResponse forRequest:request];

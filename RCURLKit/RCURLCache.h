@@ -26,7 +26,7 @@ typedef NS_ENUM(NSInteger, RCURLCacheDocumentType) {
 - (NSCachedURLResponse *)cachedResponseForURL:(NSURL *)theURL;
 - (NSData *)cachedDataForURL:(NSURL *)theURL;
 - (void)storeCachedData:(NSData *)theData withURL:(NSURL *)theURL;
-- (void)storeCachedResponseWithResponse:(NSURLResponse *)response data:(NSData *)data forRequest:(NSURLRequest *)request;
+- (void)storeResponse:(NSURLResponse *)response withData:(NSData *)data forRequest:(NSURLRequest *)request;
 - (NSDictionary *)diskUsage;
 
 - (void)clear;
