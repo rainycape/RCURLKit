@@ -7,6 +7,8 @@
 //
 
 #import <CoreGraphics/CoreGraphics.h>
+#import <ImageIO/ImageIO.h>
+#import <MobileCoreServices/MobileCoreServices.h>
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
@@ -347,10 +349,38 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 - (void)cacheImage:(RCImage *)theImage withData:(NSData *)theData response:(NSURLResponse *)response forURL:(NSURL *)theURL
 {
+    if (!theImage) {
+        theImage = [[[RCImage alloc] initWithData:theData] autorelease];
+        if (!theImage) {
+            return;
+        }
+    }
     NSUInteger theKey = [self cacheKeyForURL:theURL];
     CFDictionarySetValue(_cache, (void *)theKey, theImage);
     NSURLRequest *theRequest = [NSURLRequest requestWithURL:theURL];
-    [[RCURLCache sharedCache] storeResponse:response withData:theData forRequest:theRequest];
+    if (!response) {
+        NSString *imageFormat = nil;
+        CGImageSourceRef imageSource = CGImageSourceCreateWithData((CFDataRef)theData, NULL);
+        if (imageSource) {
+            if (CGImageSourceGetStatus(imageSource) == kCGImageStatusComplete) {
+                CFStringRef imageType = CGImageSourceGetType(imageSource);
+                if (imageType) {
+                    imageFormat = [(NSString *)UTTypeCopyPreferredTagWithClass(imageType, kUTTagClassMIMEType) autorelease];
+                }
+            }
+            CFRelease(imageSource);
+        }
+        if (imageFormat) {
+            NSDictionary *headerFields = @{@"Content-Type": [@"image/" stringByAppendingString:imageFormat]};
+            response = [[[NSHTTPURLResponse alloc] initWithURL:theURL
+                                                    statusCode:200
+                                                   HTTPVersion:@"HTTP/1.1"
+                                                  headerFields:headerFields] autorelease];
+        }
+    }
+    if (response) {
+        [[RCURLCache sharedCache] storeResponse:response withData:theData forRequest:theRequest];
+    }
 }
 
 - (NSUInteger)cacheKeyForURL:(NSURL *)theURL
