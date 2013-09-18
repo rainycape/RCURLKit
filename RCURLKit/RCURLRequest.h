@@ -13,6 +13,10 @@
     statusCode >= 200 && statusCode < 300; \
 })
 
+#define HTTP_HANDLER_SUCCESS(data, response, error) ({ \
+    data && !error && HTTP_RESPONSE_IS_OK(response); \
+})
+
 typedef NS_ENUM(NSInteger, RCURLRequestMethod) {
     RCURLRequestMethodGET,
     RCURLRequestMethodHEAD,
