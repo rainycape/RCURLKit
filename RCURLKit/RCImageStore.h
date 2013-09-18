@@ -59,5 +59,9 @@ extern NSString * const RCImageStoreDidFinishRequestNotification;
 - (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate;
 
 + (RCImageStore *)sharedStore;
++ (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate;
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate;
++ (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate;
+
 
 @end

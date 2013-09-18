@@ -380,4 +380,20 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     return sharedStore;
 }
 
++ (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    [[self sharedStore] cancelRequest:theRequest withDelegate:theDelegate];
+}
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    return [[self sharedStore] requestImageWithURL:theURL delegate:theDelegate];
+}
+
++ (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    return [[self sharedStore] requestImageWithURLString:theURLString delegate:theDelegate];
+}
+
+
 @end
