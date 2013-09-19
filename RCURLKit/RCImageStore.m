@@ -161,13 +161,18 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 	CFIndex count = CFDictionaryGetCount(_cache);
 	if (count > 0) {
 		const void *keys[count];
-		CFDictionaryGetKeysAndValues(_cache, keys, NULL);
+        const void *values[count];
+        @synchronized(self) {
+            CFDictionaryGetKeysAndValues(_cache, keys, values);
+        }
 		for (NSInteger ii = count - 1; ii >= 0; --ii) {
 			const void *key = keys[ii];
-			CFTypeRef obj = CFDictionaryGetValue(_cache, key);
+			CFTypeRef obj = values[ii];
 			if (CFGetRetainCount(obj) == 1) {
 				/* Only cache_ is retaining the image */
-				CFDictionaryRemoveValue(_cache, key);
+                @synchronized(self) {
+                    CFDictionaryRemoveValue(_cache, key);
+                }
 			}
 		}
 	}
@@ -183,7 +188,10 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 	void *key = (void *)[theURL.absoluteString hash];
 
-	RCImage *image = (RCImage *)CFDictionaryGetValue(_cache, key);
+	RCImage *image;
+    @synchronized(self) {
+        image = (RCImage *)CFDictionaryGetValue(_cache, key);
+    }
 	if (image) {
         [theDelegate imageStore:self didReceiveImage:image withURL:theURL];
 
@@ -356,7 +364,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
         }
     }
     NSUInteger theKey = [self cacheKeyForURL:theURL];
-    CFDictionarySetValue(_cache, (void *)theKey, theImage);
+    @synchronized(self) {
+        CFDictionarySetValue(_cache, (void *)theKey, theImage);
+    }
     NSURLRequest *theRequest = [NSURLRequest requestWithURL:theURL];
     if (!response) {
         NSString *imageFormat = nil;
@@ -396,7 +406,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 - (void)didReceiveMemoryWarning:(NSNotification *)aNotification {
 	/* Empty the cache from the main thread */
-	CFDictionaryRemoveAllValues(_cache);
+    @synchronized(self) {
+        CFDictionaryRemoveAllValues(_cache);
+    }
 }
 
 #pragma mark singleton boilerplate
