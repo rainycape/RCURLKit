@@ -8,9 +8,9 @@
 
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
-#import <MobileCoreServices/MobileCoreServices.h>
 
 #if TARGET_OS_IPHONE
+#import <MobileCoreServices/MobileCoreServices.h>
 #import <UIKit/UIKit.h>
 #define RCImage UIImage
 #else

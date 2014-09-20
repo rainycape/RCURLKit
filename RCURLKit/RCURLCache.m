@@ -270,7 +270,7 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     NSData *theData = [cachedResponse data];
     /* Check if we should relase the data */
     BOOL requiresRelease = NO;
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
     if ([[[UIDevice currentDevice] systemVersion] hasPrefix:@"5"]) {
         requiresRelease = [theData retainCount] != [[cachedResponse data] retainCount];
     }
