@@ -296,7 +296,9 @@ NSString * const RCURLRequestErrorKey = @"Error";
         } else {
             stringValue = [theValue description];
         }
-        [theComponents addObject:[NSString stringWithFormat:@"%@=%@", aKey, stringValue]];
+        [theComponents addObject:[NSString stringWithFormat:@"%@=%@",
+                                  [self URLEncodedString:aKey],
+                                  [self URLEncodedString:stringValue]]];
     }
     return [theComponents componentsJoinedByString:@"&"];
 }
