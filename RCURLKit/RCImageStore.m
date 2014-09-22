@@ -190,10 +190,11 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 	RCImage *image;
     @synchronized(self) {
-        image = (RCImage *)CFDictionaryGetValue(_cache, key);
+        image = [(RCImage *)CFDictionaryGetValue(_cache, key) retain];
     }
 	if (image) {
         [theDelegate imageStore:self didReceiveImage:image withURL:theURL];
+        [image release];
 
 	} else {
         RCImageStoreInternalRequest *pendingRequest = CFDictionaryGetValue(_requestsByURL, key);
