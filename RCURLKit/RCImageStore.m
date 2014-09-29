@@ -121,7 +121,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 - (void)dealloc {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
     [_userAgent release];
-	CFRelease(_cache);
+    @synchronized(self) {
+        CFRelease(_cache);
+    }
 	CFRelease(_requests);
     CFRelease(_networkRequests);
     CFRelease(_requestsByURL);
@@ -158,24 +160,25 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 }
 
 - (void)garbageCollectThread {
-	CFIndex count = CFDictionaryGetCount(_cache);
+    CFIndex count = 0;
+    @synchronized(self) {
+        count = CFDictionaryGetCount(_cache);
+    }
 	if (count > 0) {
 		const void *keys[count];
         const void *values[count];
         @synchronized(self) {
             CFDictionaryGetKeysAndValues(_cache, keys, values);
-        }
-		for (NSInteger ii = count - 1; ii >= 0; --ii) {
+            for (NSInteger ii = count - 1; ii >= 0; --ii) {
 			const void *key = keys[ii];
 			CFTypeRef obj = values[ii];
 			if (CFGetRetainCount(obj) == 1) {
 				/* Only cache_ is retaining the image */
-                @synchronized(self) {
                     CFDictionaryRemoveValue(_cache, key);
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 }
 
 - (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate {
@@ -227,7 +230,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     RCImage *image = [aRequest userInfo];
     NSURL *theURL = [aRequest URL];
     void *key = (void *)[[theURL absoluteString] hash];
-    CFDictionarySetValue(_cache, key, image);
+    @synchronized(self) {
+        CFDictionarySetValue(_cache, key, image);
+    }
     CFSetRemoveValue(_requests, aRequest);
     CFDictionaryRemoveValue(_requestsByURL, key);
     for (id <RCImageStoreDelegate> aDelegate in [aRequest delegates]) {
@@ -340,7 +345,10 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 - (RCImage *)cachedImageWithURL:(NSURL *)theURL
 {
     NSUInteger theKey = [self cacheKeyForURL:theURL];
-    RCImage *theImage = (RCImage *)CFDictionaryGetValue(_cache, (void *)theKey);
+    RCImage *theImage = nil;
+    @synchronized(self) {
+        theImage = [[(RCImage *)CFDictionaryGetValue(_cache, (void *)theKey) retain] autorelease];
+    }
     if (!theImage) {
         RCURLCache *sharedCache = [RCURLCache sharedCache];
         NSData *theData = [sharedCache cachedDataForURL:theURL];
@@ -348,7 +356,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
             theImage = [[RCImage alloc] initWithData:theData];
             if (theImage) {
                 theImage = [self prepareImage:theImage];
-                CFDictionarySetValue(_cache, (void *)theKey, theImage);
+                @synchronized(self) {
+                    CFDictionarySetValue(_cache, (void *)theKey, theImage);
+                }
                 [theImage autorelease];
             }
         }
