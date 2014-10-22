@@ -1,0 +1,11 @@
+---
+Language:        Cpp
+BasedOnStyle:  WebKit
+PointerBindsToType: false
+ColumnLimit: 100
+ObjCSpaceAfterProperty: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+...
