@@ -9,59 +9,108 @@
 #import <Foundation/Foundation.h>
 
 #if TARGET_OS_IPHONE
+
+#import <UIKit/UIKit.h>
+
 @class UIImage;
+typedef void (^RCImageStoreCompletionHandler)(UIImage *image, NSURL *URL, NSError *error);
+
 #else
+
+#import <Cocoa/Cocoa.h>
+
 @class NSImage;
+typedef void (^RCImageStoreCompletionHandler)(NSImage *image, NSURL *URL, NSError *error);
+
 #endif
 
-extern NSString * const RCImageStoreWillStartRequestNotification;
-extern NSString * const RCImageStoreDidFinishRequestNotification;
+extern NSString *const RCImageStoreWillStartRequestNotification;
+extern NSString *const RCImageStoreDidFinishRequestNotification;
 
 @class RCImageStore;
 
-@class RCImageStoreRequest;
+@interface RCImageStoreRequest : NSObject
 
-@protocol RCImageStoreDelegate<NSObject>
-
-@required
-#if TARGET_OS_IPHONE
-- (void)imageStore:(RCImageStore *)imageStore didReceiveImage:(UIImage *)theImage withURL:(NSURL *)theURL;
-#else
-- (void)imageStore:(RCImageStore *)imageStore didReceiveImage:(NSImage *)theImage withURL:(NSURL *)theURL;
-#endif
-
-@optional
-- (void)imageStore:(RCImageStore *)imageStore failedWithURL:(NSURL *)theURL error:(NSError *)theError;
+- (void)cancel;
 
 @end
 
+@protocol RCImageStoreDelegate <NSObject>
+
+@required
+#if TARGET_OS_IPHONE
+- (void)imageStore:(RCImageStore *)imageStore
+    didReceiveImage:(UIImage *)theImage
+            withURL:(NSURL *)theURL;
+#else
+- (void)imageStore:(RCImageStore *)imageStore
+    didReceiveImage:(NSImage *)theImage
+            withURL:(NSURL *)theURL;
+#endif
+
+@optional
+- (void)imageStore:(RCImageStore *)imageStore
+     failedWithURL:(NSURL *)theURL
+             error:(NSError *)theError;
+
+@end
 
 @interface RCImageStore : NSObject {
 }
 
 @property(nonatomic, strong) NSString *userAgent;
-@property(nonatomic, getter = requiresOKResponse) BOOL requireOKResponse;
+@property(nonatomic, getter=requiresOKResponse) BOOL requireOKResponse;
 @property(nonatomic) BOOL predecode;
 #if TARGET_OS_IPHONE
 @property(nonatomic, retain) UIColor *predecodingBackgroundColor;
 #endif
 
-- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate;
-- (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate;
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
+
 #if TARGET_OS_IPHONE
+
 - (UIImage *)cachedImageWithURL:(NSURL *)theURL;
-- (void)cacheImage:(UIImage *)theImage withData:(NSData *)theData response:(NSURLResponse *)response forURL:(NSURL *)theURL;
+
+- (void)cacheImage:(UIImage *)theImage
+          withData:(NSData *)theData
+          response:(NSURLResponse *)response
+            forURL:(NSURL *)theURL;
 #else
+
 - (NSImage *)cachedImageWithURL:(NSURL *)theURL;
-- (void)cacheImage:(NSImage *)theImage withData:(NSData *)theData response:(NSURLResponse *)response forURL:(NSURL *)theURL;
+- (void)cacheImage:(NSImage *)theImage
+          withData:(NSData *)theData
+          response:(NSURLResponse *)response
+            forURL:(NSURL *)theURL;
+
 #endif
 
-- (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate;
-
 + (RCImageStore *)sharedStore;
-+ (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate;
-+ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate;
-+ (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate;
 
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
 
 @end

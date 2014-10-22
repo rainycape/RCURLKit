@@ -16,7 +16,7 @@
 @interface RCURLCacheViewController ()
 
 @property(nonatomic, retain) NSDictionary *diskUsage;
-@property(nonatomic, getter = isClearing) BOOL clearing;
+@property(nonatomic, getter=isClearing) BOOL clearing;
 
 @end
 
@@ -32,10 +32,14 @@
     if ((self = [super initWithStyle:style])) {
         [self setTitle:NSLocalizedString(@"Cache", nil)];
         NSNotificationCenter *defaultCenter = [NSNotificationCenter defaultCenter];
-        [defaultCenter addObserver:self selector:@selector(beganClearingCache:)
-                              name:RCURLCacheBeganClearingNotification object:nil];
-        [defaultCenter addObserver:self selector:@selector(finishedClearingCache:)
-                              name:RCURLCacheFinishedClearingNotification object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(beganClearingCache:)
+                              name:RCURLCacheBeganClearingNotification
+                            object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(finishedClearingCache:)
+                              name:RCURLCacheFinishedClearingNotification
+                            object:nil];
     }
     return self;
 }
@@ -43,9 +47,6 @@
 - (void)dealloc
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [_diskUsage release];
-    [_cache release];
-    [super dealloc];
 }
 
 #pragma mark - UITableViewDataSource
@@ -82,7 +83,7 @@
     if (section == 2) {
         CGFloat margin = 10;
         CGFloat width = CGRectGetWidth([tableView bounds]);
-        UIView *theContainer = [[[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 44)] autorelease];
+        UIView *theContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 44)];
         [theContainer setBackgroundColor:[UIColor clearColor]];
         [theContainer setAutoresizingMask:UIViewAutoresizingFlexibleWidth];
         CGRect buttonFrame = CGRectInset([theContainer bounds], margin, 0);
@@ -94,36 +95,42 @@
         [[theButton titleLabel] setShadowOffset:CGSizeMake(0, 1)];
         if ([self isClearing]) {
             [theButton setEnabled:NO];
-            UIActivityIndicatorView *indicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+            UIActivityIndicatorView *indicatorView = [[UIActivityIndicatorView alloc]
+                initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
             [indicatorView sizeToFit];
             [indicatorView startAnimating];
-            [indicatorView setAutoresizingMask:~(UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight)];
+            [indicatorView setAutoresizingMask:~(UIViewAutoresizingFlexibleWidth
+                                                 | UIViewAutoresizingFlexibleHeight)];
             [indicatorView setCenter:CGPointMake(CGRectGetMidX(buttonFrame), 22)];
             [theButton addSubview:indicatorView];
-            [indicatorView release];
         } else {
             [theButton setTitle:NSLocalizedString(@"Clear", nil) forState:UIControlStateNormal];
         }
         UIImage *backgroundImage = [UIImage imageNamed:@"RCURLCache.bundle/ClearButtonNormal.png"];
-        [theButton setBackgroundImage:[backgroundImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
-                             forState:UIControlStateNormal];
+        [theButton
+            setBackgroundImage:[backgroundImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
+                      forState:UIControlStateNormal];
         UIImage *pressedImage = [UIImage imageNamed:@"RCURLCache.bundle/ClearButtonPressed.png"];
-        [theButton setBackgroundImage:[pressedImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
-                             forState:UIControlStateHighlighted];
-        [theButton addTarget:self action:@selector(clearCache:) forControlEvents:UIControlEventTouchUpInside];
+        [theButton
+            setBackgroundImage:[pressedImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
+                      forState:UIControlStateHighlighted];
+        [theButton addTarget:self
+                      action:@selector(clearCache:)
+            forControlEvents:UIControlEventTouchUpInside];
         [theContainer addSubview:theButton];
         return theContainer;
     }
     return nil;
 }
 
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+- (UITableViewCell *)tableView:(UITableView *)tableView
+         cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     static NSString *CellIdentifier = @"Cell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (cell == nil) {
-        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
-                                       reuseIdentifier:CellIdentifier] autorelease];
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
+                                      reuseIdentifier:CellIdentifier];
         [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
     }
     NSDictionary *diskUsage = [self diskUsage];
@@ -133,18 +140,18 @@
         NSNumber *theKey = [theKeys objectAtIndex:indexPath.row];
         RCURLCacheDocumentType documentType = [theKey intValue];
         switch (documentType) {
-            case RCURLCacheDocumentTypeOther:
-                cell.textLabel.text = NSLocalizedString(@"Other", nil);
-                break;
-            case RCURLCacheDocumentTypeImage:
-                cell.textLabel.text = NSLocalizedString(@"Images", nil);
-                break;
-            case RCURLCacheDocumentTypePage:
-                cell.textLabel.text = NSLocalizedString(@"Pages", nil);
-                break;
-            case RCURLCacheDocumentTypeVideo:
-                cell.textLabel.text = NSLocalizedString(@"Video", nil);
-                break;
+        case RCURLCacheDocumentTypeOther:
+            cell.textLabel.text = NSLocalizedString(@"Other", nil);
+            break;
+        case RCURLCacheDocumentTypeImage:
+            cell.textLabel.text = NSLocalizedString(@"Images", nil);
+            break;
+        case RCURLCacheDocumentTypePage:
+            cell.textLabel.text = NSLocalizedString(@"Pages", nil);
+            break;
+        case RCURLCacheDocumentTypeVideo:
+            cell.textLabel.text = NSLocalizedString(@"Video", nil);
+            break;
         }
         NSNumber *theValue = [diskUsage objectForKey:theKey];
         cell.detailTextLabel.text = [self stringWithHumanReadableSize:theValue];
@@ -164,25 +171,31 @@
 
 - (NSString *)stringWithHumanReadableSize:(NSNumber *)theSize
 {
-    NSNumberFormatter *numberFormatter = [[[NSNumberFormatter alloc] init] autorelease];
+    NSNumberFormatter *numberFormatter = [[NSNumberFormatter alloc] init];
     [numberFormatter setMinimumFractionDigits:2];
     [numberFormatter setMaximumFractionDigits:2];
     unsigned long long val = [theSize unsignedLongLongValue];
     if (val < 1024) {
         [numberFormatter setMinimumFractionDigits:0];
-        return [NSString stringWithFormat:@"%@ bytes",
-                [numberFormatter stringFromNumber:theSize]];
+        return [NSString stringWithFormat:@"%@ bytes", [numberFormatter stringFromNumber:theSize]];
     }
     if (val < 1024 * 1024) {
-        return [NSString stringWithFormat:@"%@ KB",
-                [numberFormatter stringFromNumber:[NSNumber numberWithFloat:val / 1024.0]]];
+        return [NSString
+            stringWithFormat:@"%@ KB",
+                             [numberFormatter
+                                 stringFromNumber:[NSNumber numberWithFloat:val / 1024.0]]];
     }
     if (val < 1024 * 1024 * 1024) {
-        return [NSString stringWithFormat:@"%@ MB",
-                [numberFormatter stringFromNumber:[NSNumber numberWithFloat:val / (1024.0 * 1024.0)]]];
+        return [NSString
+            stringWithFormat:
+                @"%@ MB", [numberFormatter
+                              stringFromNumber:[NSNumber numberWithFloat:val / (1024.0 * 1024.0)]]];
     }
-    return [NSString stringWithFormat:@"%@ GB",
-            [numberFormatter stringFromNumber:[NSNumber numberWithFloat:val / (1024.0 * 1024.0 * 1024.0)]]];
+    return [NSString
+        stringWithFormat:@"%@ GB",
+                         [numberFormatter
+                             stringFromNumber:[NSNumber numberWithFloat:val / (1024.0 * 1024.0
+                                                                               * 1024.0)]]];
 }
 
 - (void)reloadDataAnimated

@@ -39,6 +39,9 @@
 		02AF06DA17E510A200E77647 /* RCURLCacheViewController.h in Copy Files */ = {isa = PBXBuildFile; fileRef = 02AF069117E4E95800E77647 /* RCURLCacheViewController.h */; };
 		02AF06DB17E510A200E77647 /* RCURLRequest.h in Copy Files */ = {isa = PBXBuildFile; fileRef = 02AF069317E4E95800E77647 /* RCURLRequest.h */; };
 		02AF06DC17E510A200E77647 /* RCImageStore.h in Copy Files */ = {isa = PBXBuildFile; fileRef = 02AF069817E4EBA900E77647 /* RCImageStore.h */; };
+		02B32EB719F7E7890014BC67 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02B32EB619F7E7890014BC67 /* ImageIO.framework */; };
+		02B32EB919F7E7900014BC67 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 02B32EB819F7E7900014BC67 /* libsqlite3.dylib */; };
+		02B32EBB19F7E7950014BC67 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02B32EBA19F7E7950014BC67 /* MobileCoreServices.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +115,9 @@
 		02AF069817E4EBA900E77647 /* RCImageStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCImageStore.h; sourceTree = "<group>"; };
 		02AF069917E4EBA900E77647 /* RCImageStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCImageStore.m; sourceTree = "<group>"; };
 		02AF06A817E4FE7B00E77647 /* libRCURLKitMac.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCURLKitMac.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		02B32EB619F7E7890014BC67 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
+		02B32EB819F7E7900014BC67 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
+		02B32EBA19F7E7950014BC67 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +141,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				02B32EBB19F7E7950014BC67 /* MobileCoreServices.framework in Frameworks */,
+				02B32EB919F7E7900014BC67 /* libsqlite3.dylib in Frameworks */,
+				02B32EB719F7E7890014BC67 /* ImageIO.framework in Frameworks */,
 				02AF067817E4E89A00E77647 /* XCTest.framework in Frameworks */,
 				02AF067B17E4E89A00E77647 /* UIKit.framework in Frameworks */,
 				02AF067917E4E89A00E77647 /* Foundation.framework in Frameworks */,
@@ -208,6 +217,9 @@
 		02AF066817E4E89900E77647 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				02B32EBA19F7E7950014BC67 /* MobileCoreServices.framework */,
+				02B32EB819F7E7900014BC67 /* libsqlite3.dylib */,
+				02B32EB619F7E7890014BC67 /* ImageIO.framework */,
 				02AF066917E4E89900E77647 /* Foundation.framework */,
 				02AF067717E4E89A00E77647 /* XCTest.framework */,
 				02AF067A17E4E89A00E77647 /* UIKit.framework */,
@@ -454,7 +466,6 @@
 		02A89BBC17E5181900C0B638 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "RCURLKitResources/RCURLKitResources-Prefix.pch";
@@ -475,7 +486,6 @@
 		02A89BBD17E5181900C0B638 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -497,7 +507,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -541,7 +551,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -637,7 +647,6 @@
 		02AF06A617E4FE7B00E77647 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -654,7 +663,6 @@
 		02AF06A717E4FE7B00E77647 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
