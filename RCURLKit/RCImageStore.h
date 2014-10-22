@@ -39,7 +39,7 @@ extern NSString * const RCImageStoreDidFinishRequestNotification;
 @interface RCImageStore : NSObject {
 }
 
-@property(nonatomic, retain) NSString *userAgent;
+@property(nonatomic, strong) NSString *userAgent;
 @property(nonatomic, getter = requiresOKResponse) BOOL requireOKResponse;
 @property(nonatomic) BOOL predecode;
 #if TARGET_OS_IPHONE

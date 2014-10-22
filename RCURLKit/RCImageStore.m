@@ -26,110 +26,101 @@
 #define kNetworkTimeout 60
 #define kMaximumNetworkRequests 10
 
-NSString * const RCImageStoreWillStartRequestNotification = @"RCImageStoreWillStartRequestNotification";
-NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFinishRequestNotification";
+NSString *const RCImageStoreWillStartRequestNotification =
+    @"RCImageStoreWillStartRequestNotification";
+NSString *const RCImageStoreDidFinishRequestNotification =
+    @"RCImageStoreWillFinishRequestNotification";
 
-@interface RCImageStoreInternalRequest : NSObject {
-	CFMutableArrayRef _delegates;
-}
+@interface RCImageStoreRequest : NSObject
 
-@property(nonatomic, retain) NSURL *URL;
-@property(nonatomic, retain) id userInfo;
-@property(nonatomic, readonly) NSMutableArray *delegates;
+@property(nonatomic, strong) NSURL *URL;
+@property(nonatomic, strong) id userInfo;
+@property(nonatomic, strong) NSPointerArray *delegates;
 
 @end
 
-@implementation RCImageStoreInternalRequest
+@implementation RCImageStoreRequest
 
 - (id)initWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)delegate
 {
     if ((self = [super init])) {
         [self setURL:theURL];
-        _delegates = CFArrayCreateMutable(kCFAllocatorDefault, 0, NULL);
-        CFArrayAppendValue(_delegates, delegate);
+        self.delegates = [NSPointerArray weakObjectsPointerArray];
+        [self.delegates addPointer:(__bridge void *)(delegate)];
     }
     return self;
 }
 
-- (void)dealloc {
-	[_URL release];
-    [_userInfo release];
-    CFRelease(_delegates);
-	[super dealloc];
-}
 
 - (void)addDelegate:(id<RCImageStoreDelegate>)delegate
 {
-    CFIndex idx = CFArrayGetFirstIndexOfValue(_delegates, CFRangeMake(0, CFArrayGetCount(_delegates)), delegate);
-    if (idx == kCFNotFound) {
-        CFArrayAppendValue(_delegates, delegate);
+    BOOL found = NO;
+    for (id aPointer in self.delegates) {
+        if (aPointer == delegate) {
+            found = YES;
+            break;
+        }
+    }
+    if (!found) {
+        [self.delegates addPointer:(__bridge void *)(delegate)];
     }
 }
 
 - (void)removeDelegate:(id<RCImageStoreDelegate>)delegate
 {
-    CFIndex idx = CFArrayGetFirstIndexOfValue(_delegates, CFRangeMake(0, CFArrayGetCount(_delegates)), delegate);
-    if (idx != kCFNotFound) {
-        CFArrayRemoveValueAtIndex(_delegates, idx);
+    NSUInteger theIndex = NSNotFound;
+    NSUInteger ii = 0;
+    for (id aPointer in self.delegates) {
+        if (aPointer == delegate) {
+            theIndex = ii;
+            break;
+        }
+        ii++;
     }
-}
-
-- (NSArray *)delegates
-{
-    return (NSArray *)_delegates;
+    if (theIndex != NSNotFound) {
+        [self.delegates removePointerAtIndex:theIndex];
+    }
 }
 
 @end
 
 @interface RCImageStore ()
 
-- (NSUInteger)cacheKeyForURL:(NSURL *)theURL;
 - (void)postNotificationName:(NSString *)theName request:(NSURLRequest *)theRequest;
+
+@property(nonatomic, strong) NSMapTable *cache;
+@property(nonatomic, strong) NSMutableSet *networkRequests;
+@property(nonatomic, strong) NSMapTable *requestsByURL;
 
 @end
 
 @implementation RCImageStore {
-    CFMutableDictionaryRef _cache;
-	CFMutableSetRef _requests;
-    CFMutableSetRef _networkRequests;
-    CFMutableDictionaryRef _requestsByURL;
-	NSTimer *_garbageCollectorTimer;
     CGColorRef _predecodingBackgroundColor;
 }
 
-- (id)init {
-	if (self = [super init]) {
-		/* Prevents the keys from being copied */
-		_cache = CFDictionaryCreateMutable(NULL, 0, NULL,
-										   &kCFTypeDictionaryValueCallBacks);
-		_requests = CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
-        _networkRequests = CFSetCreateMutable(kCFAllocatorDefault, 0, NULL);
-        _requestsByURL = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, NULL, NULL);
-		_garbageCollectorTimer = [NSTimer scheduledTimerWithTimeInterval:30 target:self
-																selector:@selector(garbageCollect)
-																userInfo:nil repeats:YES];
-#if TARGET_OS_IPHONE
-		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveMemoryWarning:)
-													 name:UIApplicationDidReceiveMemoryWarningNotification
-												   object:nil];
-#endif
-	}
+- (id)init
+{
+    if (self = [super init]) {
+        self.cache = [NSMapTable strongToWeakObjectsMapTable];
+        self.networkRequests = [NSMutableSet set];
+        self.requestsByURL = [NSMapTable strongToStrongObjectsMapTable];
 
-	return self;
+#if TARGET_OS_IPHONE
+        [[NSNotificationCenter defaultCenter]
+            addObserver:self
+               selector:@selector(didReceiveMemoryWarning:)
+                   name:UIApplicationDidReceiveMemoryWarningNotification
+                 object:nil];
+#endif
+    }
+
+    return self;
 }
 
-- (void)dealloc {
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
-    [_userAgent release];
-    @synchronized(self) {
-        CFRelease(_cache);
-    }
-	CFRelease(_requests);
-    CFRelease(_networkRequests);
-    CFRelease(_requestsByURL);
-	[_garbageCollectorTimer invalidate];
+- (void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     CGColorRelease(_predecodingBackgroundColor);
-	[super dealloc];
 }
 
 #if TARGET_OS_IPHONE
@@ -151,108 +142,80 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 #endif
 
-- (void)garbageCollect {
-	NSThread *thread = [[NSThread alloc] initWithTarget:self
-											   selector:@selector(garbageCollectThread)
-												 object:nil];
-	[thread start];
-	[thread release];
+- (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString
+                                          delegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    return [self requestImageWithURL:[NSURL URLWithString:theURLString] delegate:theDelegate];
 }
 
-- (void)garbageCollectThread {
-    CFIndex count = 0;
-    @synchronized(self) {
-        count = CFDictionaryGetCount(_cache);
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate
+{
+
+    RCImageStoreRequest *request = NULL;
+
+    id theKey = [self cacheKeyForURL:theURL];
+
+    RCImage *image;
+    @synchronized(self)
+    {
+        image = (RCImage *)[self.cache objectForKey:theKey];
     }
-	if (count > 0) {
-		const void *keys[count];
-        const void *values[count];
-        @synchronized(self) {
-            CFDictionaryGetKeysAndValues(_cache, keys, values);
-            for (NSInteger ii = count - 1; ii >= 0; --ii) {
-			const void *key = keys[ii];
-			CFTypeRef obj = values[ii];
-			if (CFGetRetainCount(obj) == 1) {
-				/* Only cache_ is retaining the image */
-                    CFDictionaryRemoveValue(_cache, key);
-                }
-            }
-        }
-    }
-}
-
-- (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate {
-	return [self requestImageWithURL:[NSURL URLWithString:theURLString] delegate:theDelegate];
-}
-
-- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate {
-
-	void *request = NULL;
-
-	void *key = (void *)[theURL.absoluteString hash];
-
-	RCImage *image;
-    @synchronized(self) {
-        image = [(RCImage *)CFDictionaryGetValue(_cache, key) retain];
-    }
-	if (image) {
+    if (image) {
         [theDelegate imageStore:self didReceiveImage:image withURL:theURL];
-        [image release];
 
-	} else {
-        RCImageStoreInternalRequest *pendingRequest = CFDictionaryGetValue(_requestsByURL, key);
+    } else {
+        RCImageStoreRequest *pendingRequest = [self.requestsByURL objectForKey:theKey];
         if (pendingRequest) {
             request = pendingRequest;
             [pendingRequest addDelegate:theDelegate];
         } else {
-            RCImageStoreInternalRequest *aRequest = [[RCImageStoreInternalRequest alloc] initWithURL:theURL delegate:theDelegate];
-            CFSetAddValue(_requests, aRequest);
-            CFDictionarySetValue(_requestsByURL, key, aRequest);
+            RCImageStoreRequest *aRequest =
+                [[RCImageStoreRequest alloc] initWithURL:theURL delegate:theDelegate];
+            [self.requestsByURL setObject:aRequest forKey:theKey];
             request = aRequest;
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                [self performRequest:aRequest];
-            });
-            [aRequest release];
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+                           ^{ [self performRequest:aRequest]; });
         }
-	}
-
-	return request;
-}
-
-- (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate {
-    if(CFSetContainsValue(_requests, theRequest)) {
-        RCImageStoreInternalRequest *aRequest = (RCImageStoreInternalRequest *)theRequest;
-        [aRequest removeDelegate:theDelegate];
     }
+
+    return request;
 }
 
-- (void)notifyDelegate:(RCImageStoreInternalRequest *)aRequest {
+- (void)cancelRequest:(RCImageStoreRequest *)theRequest
+         withDelegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    [theRequest removeDelegate:theDelegate];
+}
+
+- (void)notifyDelegate:(RCImageStoreRequest *)aRequest
+{
     RCImage *image = [aRequest userInfo];
     NSURL *theURL = [aRequest URL];
-    void *key = (void *)[[theURL absoluteString] hash];
-    @synchronized(self) {
-        CFDictionarySetValue(_cache, key, image);
+    id theKey = [self cacheKeyForURL:theURL];
+    @synchronized(self)
+    {
+        [self.cache setObject:image forKey:theKey];
     }
-    CFSetRemoveValue(_requests, aRequest);
-    CFDictionaryRemoveValue(_requestsByURL, key);
-    for (id <RCImageStoreDelegate> aDelegate in [aRequest delegates]) {
+    [self.requestsByURL removeObjectForKey:theKey];
+    for (id<RCImageStoreDelegate> aDelegate in [aRequest delegates]) {
         [aDelegate imageStore:self didReceiveImage:image withURL:theURL];
-	}
+    }
 }
 
-- (void)notifyFailureToDelegate:(RCImageStoreInternalRequest *)aRequest {
-    void *key = (void *)[[[aRequest URL] absoluteString] hash];
-    CFSetRemoveValue(_requests, aRequest);
-    CFDictionaryRemoveValue(_requestsByURL, key);
+- (void)notifyFailureToDelegate:(RCImageStoreRequest *)aRequest
+{
+    id theKey = [self cacheKeyForURL:aRequest.URL];
+    [self.requestsByURL removeObjectForKey:theKey];
     NSError *theError = [aRequest userInfo];
-    for (id <RCImageStoreDelegate> aDelegate in [aRequest delegates]) {
+    for (id<RCImageStoreDelegate> aDelegate in [aRequest delegates]) {
         if ([aDelegate respondsToSelector:@selector(imageStore:failedWithURL:error:)]) {
             [aDelegate imageStore:self failedWithURL:[aRequest URL] error:theError];
         }
     }
 }
 
-- (void)reallyStartFetchingImageWithRequest:(RCImageStoreInternalRequest *)theRequest
+- (void)reallyStartFetchingImageWithRequest:(RCImageStoreRequest *)theRequest
 {
     NSURL *theURL = [theRequest URL];
     NSMutableURLRequest *aRequest = [NSMutableURLRequest requestWithURL:theURL];
@@ -262,42 +225,46 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     }
     [aRequest setTimeoutInterval:kNetworkTimeout];
     [self postNotificationName:RCImageStoreWillStartRequestNotification request:aRequest];
-    [RCURLRequest requestWithRequest:aRequest handler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        RCImage *theImage = nil;
-        if (!error && (![self requiresOKResponse] || HTTP_RESPONSE_IS_OK(response))) {
-            theImage = [[RCImage alloc] initWithData:data];
-        }
-        if (theImage) {
-            theImage = [self prepareImage:theImage];
-            [self cacheImage:theImage withData:data response:response forURL:theURL];
-            [theRequest setUserInfo:theImage];
-            [self notifyDelegate:theRequest];
-            [theImage release];
-        } else {
-            [theRequest setUserInfo:error];
-            [self notifyFailureToDelegate:theRequest];
-        }
-        [self postNotificationName:RCImageStoreDidFinishRequestNotification request:aRequest];
-        CFSetRemoveValue(_networkRequests, theRequest);
-    }];
+    [RCURLRequest
+        requestWithRequest:aRequest
+                   handler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                       RCImage *theImage = nil;
+                       if (!error
+                           && (![self requiresOKResponse] || HTTP_RESPONSE_IS_OK(response))) {
+                           theImage = [[RCImage alloc] initWithData:data];
+                       }
+                       if (theImage) {
+                           theImage = [self prepareImage:theImage];
+                           [self cacheImage:theImage withData:data response:response forURL:theURL];
+                           [theRequest setUserInfo:theImage];
+                           [self notifyDelegate:theRequest];
+                       } else {
+                           [theRequest setUserInfo:error];
+                           [self notifyFailureToDelegate:theRequest];
+                       }
+                       [self postNotificationName:RCImageStoreDidFinishRequestNotification
+                                          request:aRequest];
+                       [self.networkRequests removeObject:theRequest];
+                   }];
 }
 
-- (void)startFetchingImageWithRequest:(RCImageStoreInternalRequest *)theRequest
+- (void)startFetchingImageWithRequest:(RCImageStoreRequest *)theRequest
 {
-    if (CFSetGetCount(_networkRequests) < kMaximumNetworkRequests) {
-        CFSetAddValue(_networkRequests, theRequest);
+    if ([self.networkRequests count] < kMaximumNetworkRequests) {
+        [self.networkRequests addObject:theRequest];
         [self reallyStartFetchingImageWithRequest:theRequest];
     } else {
         int64_t delayInSeconds = 0.1;
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-            [self startFetchingImageWithRequest:theRequest];
-        });
+        dispatch_after(popTime, dispatch_get_main_queue(),
+                       ^(void) { [self startFetchingImageWithRequest:theRequest]; });
     }
 }
 
-- (void)performRequest:(RCImageStoreInternalRequest *)theRequest {
-    @autoreleasepool {
+- (void)performRequest:(RCImageStoreRequest *)theRequest
+{
+    @autoreleasepool
+    {
         NSURL *theURL = [theRequest URL];
         RCImage *theImage = [self cachedImageWithURL:theURL];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -344,10 +311,11 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
 
 - (RCImage *)cachedImageWithURL:(NSURL *)theURL
 {
-    NSUInteger theKey = [self cacheKeyForURL:theURL];
+    id theKey = [self cacheKeyForURL:theURL];
     RCImage *theImage = nil;
-    @synchronized(self) {
-        theImage = [[(RCImage *)CFDictionaryGetValue(_cache, (void *)theKey) retain] autorelease];
+    @synchronized(self)
+    {
+        theImage = [self.cache objectForKey:theKey];
     }
     if (!theImage) {
         RCURLCache *sharedCache = [RCURLCache sharedCache];
@@ -356,47 +324,55 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
             theImage = [[RCImage alloc] initWithData:theData];
             if (theImage) {
                 theImage = [self prepareImage:theImage];
-                @synchronized(self) {
-                    CFDictionarySetValue(_cache, (void *)theKey, theImage);
+                @synchronized(self)
+                {
+                    [self.cache setObject:theImage forKey:theKey];
                 }
-                [theImage autorelease];
             }
         }
     }
     return theImage;
 }
 
-- (void)cacheImage:(RCImage *)theImage withData:(NSData *)theData response:(NSURLResponse *)response forURL:(NSURL *)theURL
+- (void)cacheImage:(RCImage *)theImage
+          withData:(NSData *)theData
+          response:(NSURLResponse *)response
+            forURL:(NSURL *)theURL
 {
     if (!theImage) {
-        theImage = [[[RCImage alloc] initWithData:theData] autorelease];
+        theImage = [[RCImage alloc] initWithData:theData];
         if (!theImage) {
             return;
         }
     }
-    NSUInteger theKey = [self cacheKeyForURL:theURL];
-    @synchronized(self) {
-        CFDictionarySetValue(_cache, (void *)theKey, theImage);
+    id theKey = [self cacheKeyForURL:theURL];
+    @synchronized(self)
+    {
+        [self.cache setObject:theImage forKey:theKey];
     }
     NSURLRequest *theRequest = [NSURLRequest requestWithURL:theURL];
     if (!response) {
         NSString *imageFormat = nil;
-        CGImageSourceRef imageSource = CGImageSourceCreateWithData((CFDataRef)theData, NULL);
+        CGImageSourceRef imageSource
+            = CGImageSourceCreateWithData((__bridge CFDataRef)theData, NULL);
         if (imageSource) {
             if (CGImageSourceGetStatus(imageSource) == kCGImageStatusComplete) {
                 CFStringRef imageType = CGImageSourceGetType(imageSource);
                 if (imageType) {
-                    imageFormat = [(NSString *)UTTypeCopyPreferredTagWithClass(imageType, kUTTagClassMIMEType) autorelease];
+                    imageFormat = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(
+                        imageType, kUTTagClassMIMEType));
                 }
             }
             CFRelease(imageSource);
         }
         if (imageFormat) {
-            NSDictionary *headerFields = @{@"Content-Type": [@"image/" stringByAppendingString:imageFormat]};
-            response = [[[NSHTTPURLResponse alloc] initWithURL:theURL
+            NSDictionary *headerFields = @{
+                @"Content-Type" : [@"image/" stringByAppendingString:imageFormat]
+            };
+            response = [[NSHTTPURLResponse alloc] initWithURL:theURL
                                                     statusCode:200
                                                    HTTPVersion:@"HTTP/1.1"
-                                                  headerFields:headerFields] autorelease];
+                                                  headerFields:headerFields];
         }
     }
     if (response) {
@@ -404,9 +380,9 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     }
 }
 
-- (NSUInteger)cacheKeyForURL:(NSURL *)theURL
+- (id)cacheKeyForURL:(NSURL *)theURL
 {
-    return [[theURL absoluteString] hash];
+    return theURL.absoluteString;
 }
 
 - (void)postNotificationName:(NSString *)theName request:(NSURLRequest *)theRequest
@@ -415,38 +391,41 @@ NSString * const RCImageStoreDidFinishRequestNotification = @"RCImageStoreWillFi
     [[NSNotificationCenter defaultCenter] postNotification:aNotification];
 }
 
-- (void)didReceiveMemoryWarning:(NSNotification *)aNotification {
-	/* Empty the cache from the main thread */
-    @synchronized(self) {
-        CFDictionaryRemoveAllValues(_cache);
+- (void)didReceiveMemoryWarning:(NSNotification *)aNotification
+{
+    /* Empty the cache from the main thread */
+    @synchronized(self)
+    {
+        [self.cache removeAllObjects];
     }
 }
 
 #pragma mark singleton boilerplate
 
-+ (RCImageStore *)sharedStore {
++ (RCImageStore *)sharedStore
+{
     static RCImageStore *sharedStore = nil;
     static dispatch_once_t token;
-    dispatch_once(&token, ^{
-        sharedStore = [[self alloc] init];
-    });
+    dispatch_once(&token, ^{ sharedStore = [[self alloc] init]; });
     return sharedStore;
 }
 
-+ (void)cancelRequest:(RCImageStoreRequest *)theRequest withDelegate:(id<RCImageStoreDelegate>)theDelegate
++ (void)cancelRequest:(RCImageStoreRequest *)theRequest
+         withDelegate:(id<RCImageStoreDelegate>)theDelegate
 {
     [[self sharedStore] cancelRequest:theRequest withDelegate:theDelegate];
 }
 
-+ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL delegate:(id<RCImageStoreDelegate>)theDelegate
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate
 {
     return [[self sharedStore] requestImageWithURL:theURL delegate:theDelegate];
 }
 
-+ (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString delegate:(id<RCImageStoreDelegate>)theDelegate
++ (RCImageStoreRequest *)requestImageWithURLString:(NSString *)theURLString
+                                          delegate:(id<RCImageStoreDelegate>)theDelegate
 {
     return [[self sharedStore] requestImageWithURLString:theURLString delegate:theDelegate];
 }
-
 
 @end

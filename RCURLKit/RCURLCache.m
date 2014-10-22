@@ -24,25 +24,30 @@
     me: min expiration timestamp, used for offline mode
  */
 
-#define CREATE_SQL "CREATE TABLE cache " \
-    "(h UNSIGNED INTEGER PRIMARY KEY UNIQUE, " \
-    "d BLOB, " \
-    "rd BLOB, " \
-    "dt UNSIGNED INTEGER, " \
-    "s UNSIGNED INTEGER, " \
-    "lu UNSIGNED INTEGER, " \
+#define CREATE_SQL                                                                                 \
+    "CREATE TABLE cache "                                                                          \
+    "(h UNSIGNED INTEGER PRIMARY KEY UNIQUE, "                                                     \
+    "d BLOB, "                                                                                     \
+    "rd BLOB, "                                                                                    \
+    "dt UNSIGNED INTEGER, "                                                                        \
+    "s UNSIGNED INTEGER, "                                                                         \
+    "lu UNSIGNED INTEGER, "                                                                        \
     "me UNSIGNED INTEGER)"
 
-#define LOAD_SQL "SELECT d, rd FROM " \
+#define LOAD_SQL                                                                                   \
+    "SELECT d, rd FROM "                                                                           \
     "cache WHERE h = ?"
 
-#define LOAD_DATA_SQL "SELECT d FROM " \
+#define LOAD_DATA_SQL                                                                              \
+    "SELECT d FROM "                                                                               \
     "cache WHERE h = ?"
 
-#define HAS_DATA_SQL "SELECT 1 FROM " \
+#define HAS_DATA_SQL                                                                               \
+    "SELECT 1 FROM "                                                                               \
     "cache WHERE h = ?"
 
-#define STORE_SQL "INSERT OR REPLACE INTO cache " \
+#define STORE_SQL                                                                                  \
+    "INSERT OR REPLACE INTO cache "                                                                \
     "(h, d, rd, dt, s, lu, me) VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 #define DELETE_SQL "DELETE FROM cache WHERE h = ?"
@@ -57,15 +62,14 @@
 
 typedef struct {
     sqlite3 *db;
-	sqlite3_stmt *load_stmt;
+    sqlite3_stmt *load_stmt;
     sqlite3_stmt *has_data_stmt;
     sqlite3_stmt *load_data_stmt;
-	sqlite3_stmt *store_stmt;
+    sqlite3_stmt *store_stmt;
     sqlite3_stmt *delete_stmt;
 } Database;
 
-static Database *
-database_new(void)
+static Database *database_new(void)
 {
     Database *db = malloc(sizeof(*db));
 #ifdef __i386__
@@ -94,8 +98,7 @@ database_new(void)
     return db;
 }
 
-static void
-database_free(Database *db)
+static void database_free(Database *db)
 {
     sqlite3_finalize(db->load_stmt);
     sqlite3_finalize(db->has_data_stmt);
@@ -106,12 +109,12 @@ database_free(Database *db)
     free(db);
 }
 
-NSString * const RCURLCacheBeganClearingNotification = @"RCURLCacheBeganClearingNotification";
-NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedClearingNotification";
+NSString *const RCURLCacheBeganClearingNotification = @"RCURLCacheBeganClearingNotification";
+NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedClearingNotification";
 
 @interface RCURLCache ()
 
-@property(nonatomic, retain) NSMutableDictionary *pendingLRUUpdates;
+@property(nonatomic, strong) NSMutableDictionary *pendingLRUUpdates;
 
 @end
 
@@ -121,26 +124,31 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
 
 @synthesize pendingLRUUpdates = pendingLRUUpdates_;
 
-- (id)initWithMemoryCapacity:(NSUInteger)memoryCapacity diskCapacity:(NSUInteger)diskCapacity diskPath:(NSString *)path
+- (id)initWithMemoryCapacity:(NSUInteger)memoryCapacity
+                diskCapacity:(NSUInteger)diskCapacity
+                    diskPath:(NSString *)path
 {
-    if ((self = [super initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:path])) {
+    if ((self
+         = [super initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:path])) {
         _db = database_new();
-        [self setPendingLRUUpdates:[NSMutableDictionary dictionaryWithCapacity:kMaximumPendingLRUUpdates]];
+        [self setPendingLRUUpdates:[NSMutableDictionary
+                                       dictionaryWithCapacity:kMaximumPendingLRUUpdates]];
 #if TARGET_OS_IPHONE
         NSNotificationCenter *defaultCenter = [NSNotificationCenter defaultCenter];
-        [defaultCenter addObserver:self selector:@selector(applicationWillResignActive:)
-                              name:UIApplicationWillResignActiveNotification object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(applicationWillResignActive:)
+                              name:UIApplicationWillResignActiveNotification
+                            object:nil];
 #endif
-	}
+    }
 
-	return self;
+    return self;
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     database_free(_db);
-    [pendingLRUUpdates_ release];
-	[super dealloc];
 }
 
 #pragma mark - Testing if cached data is available
@@ -174,16 +182,18 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     Database *db = [self databaseShouldFree:&shouldFree];
     sqlite3_stmt *load_stmt = db->load_stmt;
     sqlite3_bind_int64(load_stmt, 1, key);
-	if (sqlite3_step(load_stmt) == SQLITE_ROW) {
+    if (sqlite3_step(load_stmt) == SQLITE_ROW) {
         RCCACHE_LOG(@"Cache hit for URL %@", theURL);
-		const void *data = sqlite3_column_blob(load_stmt, 0);
-		NSInteger dataSize = sqlite3_column_bytes(load_stmt, 0);
+        const void *data = sqlite3_column_blob(load_stmt, 0);
+        NSInteger dataSize = sqlite3_column_bytes(load_stmt, 0);
         const void *responseData = sqlite3_column_blob(load_stmt, 1);
         NSInteger responseDataSize = sqlite3_column_bytes(load_stmt, 1);
-		NSData *theData = [NSData dataWithBytes:data length:dataSize];
-        NSData *theResponseData = [NSData dataWithBytesNoCopy:(void *)responseData length:responseDataSize freeWhenDone:NO];
+        NSData *theData = [NSData dataWithBytes:data length:dataSize];
+        NSData *theResponseData = [NSData dataWithBytesNoCopy:(void *)responseData
+                                                       length:responseDataSize
+                                                 freeWhenDone:NO];
         NSHTTPURLResponse *response = [NSKeyedUnarchiver unarchiveObjectWithData:theResponseData];
-        cachedResponse = [[[NSCachedURLResponse alloc] initWithResponse:response data:theData] autorelease];
+        cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:theData];
     }
     sqlite3_reset(load_stmt);
     if (cachedResponse) {
@@ -207,10 +217,10 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     BOOL shouldFree = NO;
     Database *db = [self databaseShouldFree:&shouldFree];
     sqlite3_stmt *load_data_stmt = db->load_data_stmt;
-	sqlite3_bind_int64(load_data_stmt, 1, key);
-	if (sqlite3_step(load_data_stmt) == SQLITE_ROW) {
+    sqlite3_bind_int64(load_data_stmt, 1, key);
+    if (sqlite3_step(load_data_stmt) == SQLITE_ROW) {
         const void *data = sqlite3_column_blob(load_data_stmt, 0);
-		NSInteger dataSize = sqlite3_column_bytes(load_data_stmt, 0);
+        NSInteger dataSize = sqlite3_column_bytes(load_data_stmt, 0);
         theData = [NSData dataWithBytes:data length:dataSize];
     }
     sqlite3_reset(load_data_stmt);
@@ -237,27 +247,32 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
 - (void)storeCachedData:(NSData *)theData withURL:(NSURL *)theURL
 {
     NSURLRequest *theRequest = [[NSURLRequest alloc] initWithURL:theURL];
-    NSURLResponse *theResponse = [[NSHTTPURLResponse alloc] initWithURL:theURL statusCode:200 HTTPVersion:@"HTTP/1.1" headerFields:nil];
+    NSURLResponse *theResponse = [[NSHTTPURLResponse alloc] initWithURL:theURL
+                                                             statusCode:200
+                                                            HTTPVersion:@"HTTP/1.1"
+                                                           headerFields:nil];
     [self storeResponse:theResponse withData:theData forRequest:theRequest];
-    [theResponse release];
-    [theRequest release];
 }
 
-- (void)storeResponse:(NSURLResponse *)response withData:(NSData *)data forRequest:(NSURLRequest *)request
+- (void)storeResponse:(NSURLResponse *)response
+             withData:(NSData *)data
+           forRequest:(NSURLRequest *)request
 {
-    NSCachedURLResponse *cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+    NSCachedURLResponse *cachedResponse =
+        [[NSCachedURLResponse alloc] initWithResponse:response data:data];
     [self storeCachedResponse:cachedResponse forRequest:request];
-    [cachedResponse release];
 }
 
-- (void)reallyStoreCachedResponse:(NSCachedURLResponse *)cachedResponse forRequest:(NSURLRequest *)request
+- (void)reallyStoreCachedResponse:(NSCachedURLResponse *)cachedResponse
+                       forRequest:(NSURLRequest *)request
 {
     RCCACHE_LOG(@"Caching response for %@", [request URL]);
     RCURLCacheDocumentType documentType = RCURLCacheDocumentTypeOther;
     NSURLResponse *theResponse = [cachedResponse response];
     NSString *contentType = nil;
     if ([theResponse isKindOfClass:[NSHTTPURLResponse class]]) {
-        contentType = [[(NSHTTPURLResponse *)theResponse allHeaderFields] objectForKey:@"Content-Type"];
+        contentType =
+            [[(NSHTTPURLResponse *)theResponse allHeaderFields] objectForKey:@"Content-Type"];
     }
     if ([contentType hasPrefix:@"image/"]) {
         documentType = RCURLCacheDocumentTypeImage;
@@ -269,18 +284,13 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     NSData *responseData = [NSKeyedArchiver archivedDataWithRootObject:theResponse];
     NSData *theData = [cachedResponse data];
     /* Check if we should relase the data */
-    BOOL requiresRelease = NO;
-#if TARGET_OS_IPHONE
-    if ([[[UIDevice currentDevice] systemVersion] hasPrefix:@"5"]) {
-        requiresRelease = [theData retainCount] != [[cachedResponse data] retainCount];
-    }
-#endif
     BOOL shouldFree = NO;
     Database *db = [self databaseShouldFree:&shouldFree];
     sqlite3_stmt *store_stmt = db->store_stmt;
     sqlite3_bind_int64(store_stmt, 1, [self cacheKeyWithURL:[request URL]]);
     sqlite3_bind_blob(store_stmt, 2, [theData bytes], (int)[theData length], SQLITE_STATIC);
-    sqlite3_bind_blob(store_stmt, 3, [responseData bytes], (int)[responseData length], SQLITE_STATIC);
+    sqlite3_bind_blob(store_stmt, 3, [responseData bytes], (int)[responseData length],
+                      SQLITE_STATIC);
     sqlite3_bind_int(store_stmt, 4, documentType);
     sqlite3_bind_int(store_stmt, 5, (int)[theData length]);
     sqlite3_bind_int64(store_stmt, 6, (sqlite3_int64)time(NULL));
@@ -289,11 +299,6 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     sqlite3_reset(store_stmt);
     if (shouldFree) {
         database_free(db);
-    }
-    if (requiresRelease) {
-        /* Release twice, since data was called twice */
-        [theData release];
-        [theData release];
     }
 }
 
@@ -327,7 +332,8 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
         if (sqlite3_step(count_stmt) == SQLITE_ROW) {
             int bytes = sqlite3_column_int(count_stmt, 0);
             if (bytes > 0) {
-                [theDict setObject:[NSNumber numberWithInt:bytes] forKey:[NSNumber numberWithInt:ii]];
+                [theDict setObject:[NSNumber numberWithInt:bytes]
+                            forKey:[NSNumber numberWithInt:ii]];
             }
         }
         sqlite3_reset(count_stmt);
@@ -341,10 +347,14 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
 
 - (void)clear
 {
-    [[NSNotificationCenter defaultCenter] postNotificationName:RCURLCacheBeganClearingNotification object:self];
-    [self trimToSize:0 completionHandler:^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:RCURLCacheFinishedClearingNotification object:self];
-    }];
+    [[NSNotificationCenter defaultCenter] postNotificationName:RCURLCacheBeganClearingNotification
+                                                        object:self];
+    [self trimToSize:0
+        completionHandler:^{
+            [[NSNotificationCenter defaultCenter]
+                postNotificationName:RCURLCacheFinishedClearingNotification
+                              object:self];
+        }];
 }
 
 - (void)trimToSize:(unsigned long long)theSize
@@ -363,7 +373,8 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     sqlite3_stmt *size_stmt;
     BOOL shouldFree = NO;
     Database *db = [self databaseShouldFree:&shouldFree];
-    sqlite3_prepare_v2(db->db, "SELECT SUM(s) FROM cache WHERE me IS NULL OR me < ?", -1, &size_stmt, NULL);
+    sqlite3_prepare_v2(db->db, "SELECT SUM(s) FROM cache WHERE me IS NULL OR me < ?", -1,
+                       &size_stmt, NULL);
     sqlite3_int64 currentSize = 0;
     sqlite3_bind_int64(size_stmt, 1, t);
     NSMutableArray *deletions = nil;
@@ -374,7 +385,9 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     if (currentSize > theSize) {
         deletions = [NSMutableArray array];
         sqlite3_stmt *query_stmt;
-        sqlite3_prepare_v2(db->db, "SELECT h, s FROM cache WHERE me IS NULL OR me < ? ORDER BY lu DESC", -1, &query_stmt, NULL);
+        sqlite3_prepare_v2(db->db,
+                           "SELECT h, s FROM cache WHERE me IS NULL OR me < ? ORDER BY lu DESC", -1,
+                           &query_stmt, NULL);
         sqlite3_bind_int64(query_stmt, 1, t);
         while (sqlite3_step(query_stmt) == SQLITE_ROW && currentSize > theSize) {
             sqlite3_int64 h = sqlite3_column_int64(query_stmt, 0);
@@ -397,7 +410,8 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
     sqlite3_stmt *expired_stmt;
     BOOL shouldFree = NO;
     Database *db = [self databaseShouldFree:&shouldFree];
-    sqlite3_prepare_v2(db->db, "SELECT SUM(s) FROM cache WHERE me IS NULL OR me < ? AND lu < ?", -1, &expired_stmt, NULL);
+    sqlite3_prepare_v2(db->db, "SELECT SUM(s) FROM cache WHERE me IS NULL OR me < ? AND lu < ?", -1,
+                       &expired_stmt, NULL);
     sqlite3_int64 expiry = [theDate timeIntervalSince1970];
     sqlite3_bind_int64(expired_stmt, 1, t);
     sqlite3_bind_int64(expired_stmt, 2, expiry);
@@ -488,7 +502,6 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
                 sqlite3_reset(update_lru_stmt);
             }
             sqlite3_finalize(update_lru_stmt);
-            [theUpdates release];
             if (shouldFree) {
                 database_free(db);
             }
@@ -519,9 +532,7 @@ NSString * const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCl
 {
     static dispatch_once_t once;
     static RCURLCache *sharedCache;
-    dispatch_once(&once, ^{
-        sharedCache = [[self alloc] init];
-    });
+    dispatch_once(&once, ^{ sharedCache = [[self alloc] init]; });
     return sharedCache;
 }
 

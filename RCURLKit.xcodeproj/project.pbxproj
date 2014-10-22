@@ -637,6 +637,7 @@
 		02AF06A617E4FE7B00E77647 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -653,6 +654,7 @@
 		02AF06A717E4FE7B00E77647 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;

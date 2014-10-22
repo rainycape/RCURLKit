@@ -45,11 +45,11 @@ extern NSString * const RCURLRequestErrorKey;
 @interface RCURLRequest : NSObject <NSURLConnectionDataDelegate>
 
 @property(nonatomic, copy) RCURLRedirectHandler redirectHandler;
-@property(nonatomic, retain, readonly) NSMutableURLRequest *request;
-@property(nonatomic, retain) NSDictionary *userInfo;
+@property(nonatomic, strong, readonly) NSMutableURLRequest *request;
+@property(nonatomic, strong) NSDictionary *userInfo;
 @property(nonatomic) BOOL canCache;
 @property(nonatomic, readonly, getter = isFinished) BOOL finished;
-@property(nonatomic, assign) id<RCURLRequestDelegate> delegate;
+@property(nonatomic, unsafe_unretained) id<RCURLRequestDelegate> delegate;
 
 - (void)start;
 - (void)cancel;

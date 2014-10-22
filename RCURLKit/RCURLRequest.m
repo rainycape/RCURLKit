@@ -20,11 +20,11 @@ NSString * const RCURLRequestErrorKey = @"Error";
 @interface RCURLRequest ()
 
 @property(nonatomic, copy) RCURLRequestHandler handler;
-@property(nonatomic, retain, readwrite) NSMutableURLRequest *request;
+@property(nonatomic, strong, readwrite) NSMutableURLRequest *request;
 @property(nonatomic, readwrite, getter = isFinished) BOOL finished;
-@property(nonatomic, retain) NSURLConnection *connection;
-@property(nonatomic, retain) NSURLResponse *response;
-@property(nonatomic, retain) NSMutableData *data;
+@property(nonatomic, strong) NSURLConnection *connection;
+@property(nonatomic, strong) NSURLResponse *response;
+@property(nonatomic, strong) NSMutableData *data;
 @property(nonatomic, getter = isWaiting) BOOL waiting;
 
 @end
@@ -39,17 +39,6 @@ NSString * const RCURLRequestErrorKey = @"Error";
     return self;
 }
 
-- (void)dealloc
-{
-    [_handler release];
-    [_redirectHandler release];
-    [_request release];
-    [_connection release];
-    [_response release];
-    [_data release];
-    [_userInfo release];
-    [super dealloc];
-}
 
 - (void)start
 {
@@ -60,7 +49,6 @@ NSString * const RCURLRequestErrorKey = @"Error";
                                                                  startImmediately:NO];
         [self setConnection:theConnection];
         [theConnection start];
-        [theConnection release];
         [self requestDidStart];
     }
 }
@@ -272,13 +260,13 @@ NSString * const RCURLRequestErrorKey = @"Error";
     if ([theRequest isKindOfClass:[NSMutableURLRequest class]]) {
         [aRequest setRequest:(NSMutableURLRequest *)theRequest];
     } else {
-        [aRequest setRequest:[[theRequest mutableCopy] autorelease]];
+        [aRequest setRequest:[theRequest mutableCopy]];
     }
     [aRequest setHandler:handler];
     if (start) {
         [aRequest start];
     }
-    return [aRequest autorelease];
+    return aRequest;
 }
 
 #pragma mark Utility methods for encoding
@@ -304,12 +292,12 @@ NSString * const RCURLRequestErrorKey = @"Error";
 }
 
 + (NSString *)URLEncodedString:(NSString *)theString {
-    NSString *result = (NSString *)CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
+    NSString *result = (NSString *)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
                                                                            (CFStringRef)theString,
                                                                            NULL,
                                                                            CFSTR(":/=,!$&'()*+;[]@#?"),
-                                                                           kCFStringEncodingUTF8);
-    return [result autorelease];
+                                                                           kCFStringEncodingUTF8));
+    return result;
 }
 
 @end
