@@ -292,10 +292,16 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             if (data) {
                 mimeType = [self imageFormatWithData:data];
                 if (mimeType) {
-                    [self.mimeTypes setObject:mimeType forKey:URL.absoluteString];
+                    @synchronized(self.mimeTypes)
+                    {
+                        [self.mimeTypes setObject:mimeType forKey:URL.absoluteString];
+                    }
                 }
             } else {
-                mimeType = [self.mimeTypes objectForKey:URL.absoluteString];
+                @synchronized(self.mimeTypes)
+                {
+                    mimeType = [self.mimeTypes objectForKey:URL.absoluteString];
+                }
             }
             if ([mimeType isEqualToString:@"image/png"]) {
                 resizedData = [self encodePNGImage:resizedImage];
