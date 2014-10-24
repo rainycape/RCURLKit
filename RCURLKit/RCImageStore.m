@@ -435,6 +435,8 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 #else
     NSImage *resized = [[NSImage alloc] initWithCGImage:imageRef size:theSize];
 #endif
+    CGColorSpaceRelease(colorspace);
+    CGContextRelease(ctx);
     CGImageRelease(imageRef);
     return resized;
 }
