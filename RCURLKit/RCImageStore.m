@@ -26,7 +26,7 @@
 #define kNetworkTimeout 60
 #define kMaximumNetworkRequests 10
 
-#define dispatch_get_bg_queue() dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0)
+#define dispatch_get_bg_queue() dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)
 
 NSString *const RCImageStoreWillStartRequestNotification =
     @"RCImageStoreWillStartRequestNotification";
