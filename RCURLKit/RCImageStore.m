@@ -337,7 +337,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                                  RCImage *theImage = nil;
                                  if (!error && (![self requiresOKResponse]
                                                 || HTTP_RESPONSE_IS_OK(response))) {
-                                     theImage = [[RCImage alloc] initWithData:data];
+                                     theImage = [self imageWithData:data];
                                  }
                                  if (theImage) {
                                      dispatch_async(dispatch_get_bg_queue(), ^{
@@ -430,11 +430,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
     CGContextDrawImage(ctx, CGRectMake(0, 0, imageSize.width, imageSize.height), cgImage);
     CGImageRef imageRef = CGBitmapContextCreateImage(ctx);
-#if TARGET_OS_IPHONE
-    UIImage *resized = [UIImage imageWithCGImage:imageRef];
-#else
-    NSImage *resized = [[NSImage alloc] initWithCGImage:imageRef size:theSize];
-#endif
+    RCImage *resized = [self imageWithCGImage:imageRef];
     CGColorSpaceRelease(colorspace);
     CGContextRelease(ctx);
     CGImageRelease(imageRef);
@@ -498,7 +494,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             if (outData) {
                 *outData = theData;
             }
-            theImage = [[RCImage alloc] initWithData:theData];
+            theImage = [self imageWithData:theData];
             if (theImage) {
                 theImage = [self prepareImage:theImage];
                 @synchronized(self)
@@ -526,7 +522,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
               size:(CGSize)theSize
 {
     if (!theImage) {
-        theImage = [[RCImage alloc] initWithData:theData];
+        theImage = [self imageWithData:theData];
         if (!theImage) {
             return;
         }
@@ -606,6 +602,42 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     {
         [self.cache removeAllObjects];
     }
+}
+
+#pragma mark - Image loading
+
+- (RCImage *)imageWithData:(NSData *)data
+{
+    // Unfortunately, it seems [[UIImage alloc] initWithData:] is not thread safe
+    // in iOS 8, which is probably a bug since it worked fine in previous versions.
+    //
+    // The culprit seems some interaction with UITraitCollection, which causes either
+    // a leak or a double free (or both sometimes).
+    //
+    // Workaround: decode the image using ImageIO and then create a platform image from it.
+
+    RCImage *image = nil;
+    CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    if (imageSource) {
+        if (CGImageSourceGetStatus(imageSource) == kCGImageStatusComplete) {
+            CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+            if (imageRef) {
+                image = [self imageWithCGImage:imageRef];
+                CGImageRelease(imageRef);
+            }
+        }
+        CFRelease(imageSource);
+    }
+    return image;
+}
+
+- (RCImage *)imageWithCGImage:(CGImageRef)imageRef
+{
+#if TARGET_OS_IPHONE
+    return [UIImage imageWithCGImage:imageRef];
+#else
+    return [[NSImage alloc] initWithCGImage:imageRef size:NSZeroSize];
+#endif
 }
 
 #pragma mark - Image encoding
