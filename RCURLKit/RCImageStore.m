@@ -633,11 +633,15 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (RCImage *)imageWithCGImage:(CGImageRef)imageRef
 {
+    @synchronized(self)
+    {
 #if TARGET_OS_IPHONE
-    return [UIImage imageWithCGImage:imageRef];
+        // Making this method not thread safe is just retarded, Apple
+        return [UIImage imageWithCGImage:imageRef];
 #else
-    return [[NSImage alloc] initWithCGImage:imageRef size:NSZeroSize];
+        return [[NSImage alloc] initWithCGImage:imageRef size:NSZeroSize];
 #endif
+    }
 }
 
 #pragma mark - Image encoding
