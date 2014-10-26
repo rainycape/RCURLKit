@@ -10,15 +10,10 @@
 		022F477B19F80FEF0058969E /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 022F477A19F80FEF0058969E /* libsqlite3.dylib */; };
 		02A89BA917E517B700C0B638 /* RCURLKit.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF066E17E4E89900E77647 /* RCURLKit.h */; };
 		02A89BAA17E517B700C0B638 /* RCURLCache.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF068F17E4E95800E77647 /* RCURLCache.h */; };
-		02A89BAB17E517B700C0B638 /* RCURLCacheViewController.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF069117E4E95800E77647 /* RCURLCacheViewController.h */; };
 		02A89BAC17E517B700C0B638 /* RCURLRequest.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF069317E4E95800E77647 /* RCURLRequest.h */; };
 		02A89BAD17E517B700C0B638 /* RCImageStore.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF069817E4EBA900E77647 /* RCImageStore.h */; };
 		02A89BB417E5181900C0B638 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02A89BB317E5181900C0B638 /* CoreFoundation.framework */; };
 		02A89BBA17E5181900C0B638 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 02A89BB817E5181900C0B638 /* InfoPlist.strings */; };
-		02A89BC417E5187C00C0B638 /* ClearButtonNormal.png in Resources */ = {isa = PBXBuildFile; fileRef = 02A89BC017E5187C00C0B638 /* ClearButtonNormal.png */; };
-		02A89BC517E5187C00C0B638 /* ClearButtonNormal@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 02A89BC117E5187C00C0B638 /* ClearButtonNormal@2x.png */; };
-		02A89BC617E5187C00C0B638 /* ClearButtonPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 02A89BC217E5187C00C0B638 /* ClearButtonPressed.png */; };
-		02A89BC717E5187C00C0B638 /* ClearButtonPressed@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 02A89BC317E5187C00C0B638 /* ClearButtonPressed@2x.png */; };
 		02AF066A17E4E89900E77647 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02AF066917E4E89900E77647 /* Foundation.framework */; };
 		02AF067817E4E89A00E77647 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02AF067717E4E89A00E77647 /* XCTest.framework */; };
 		02AF067917E4E89A00E77647 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02AF066917E4E89900E77647 /* Foundation.framework */; };
@@ -32,7 +27,6 @@
 		02AF069A17E4EBA900E77647 /* RCImageStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 02AF069917E4EBA900E77647 /* RCImageStore.m */; };
 		02AF069D17E4FE7B00E77647 /* RCURLRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 02AF069417E4E95800E77647 /* RCURLRequest.m */; };
 		02AF069E17E4FE7B00E77647 /* RCImageStore.m in Sources */ = {isa = PBXBuildFile; fileRef = 02AF069917E4EBA900E77647 /* RCImageStore.m */; };
-		02AF069F17E4FE7B00E77647 /* RCURLCacheViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 02AF069217E4E95800E77647 /* RCURLCacheViewController.m */; };
 		02AF06A017E4FE7B00E77647 /* RCURLCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 02AF069017E4E95800E77647 /* RCURLCache.m */; };
 		02AF06A217E4FE7B00E77647 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02AF066917E4E89900E77647 /* Foundation.framework */; };
 		02AF06D817E510A200E77647 /* RCURLKit.h in Copy Files */ = {isa = PBXBuildFile; fileRef = 02AF066E17E4E89900E77647 /* RCURLKit.h */; };
@@ -69,7 +63,6 @@
 			files = (
 				02A89BA917E517B700C0B638 /* RCURLKit.h in CopyFiles */,
 				02A89BAA17E517B700C0B638 /* RCURLCache.h in CopyFiles */,
-				02A89BAB17E517B700C0B638 /* RCURLCacheViewController.h in CopyFiles */,
 				02A89BAC17E517B700C0B638 /* RCURLRequest.h in CopyFiles */,
 				02A89BAD17E517B700C0B638 /* RCImageStore.h in CopyFiles */,
 			);
@@ -99,10 +92,6 @@
 		02A89BB717E5181900C0B638 /* RCURLKitResources-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "RCURLKitResources-Info.plist"; sourceTree = "<group>"; };
 		02A89BB917E5181900C0B638 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		02A89BBB17E5181900C0B638 /* RCURLKitResources-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RCURLKitResources-Prefix.pch"; sourceTree = "<group>"; };
-		02A89BC017E5187C00C0B638 /* ClearButtonNormal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ClearButtonNormal.png; sourceTree = "<group>"; };
-		02A89BC117E5187C00C0B638 /* ClearButtonNormal@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ClearButtonNormal@2x.png"; sourceTree = "<group>"; };
-		02A89BC217E5187C00C0B638 /* ClearButtonPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ClearButtonPressed.png; sourceTree = "<group>"; };
-		02A89BC317E5187C00C0B638 /* ClearButtonPressed@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ClearButtonPressed@2x.png"; sourceTree = "<group>"; };
 		02AF066617E4E89900E77647 /* libRCURLKit.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCURLKit.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		02AF066917E4E89900E77647 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		02AF066D17E4E89900E77647 /* RCURLKit-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RCURLKit-Prefix.pch"; sourceTree = "<group>"; };
@@ -206,10 +195,6 @@
 		02A89BBF17E5185400C0B638 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				02A89BC017E5187C00C0B638 /* ClearButtonNormal.png */,
-				02A89BC117E5187C00C0B638 /* ClearButtonNormal@2x.png */,
-				02A89BC217E5187C00C0B638 /* ClearButtonPressed.png */,
-				02A89BC317E5187C00C0B638 /* ClearButtonPressed@2x.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -448,11 +433,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				02A89BC417E5187C00C0B638 /* ClearButtonNormal.png in Resources */,
-				02A89BC717E5187C00C0B638 /* ClearButtonPressed@2x.png in Resources */,
 				02A89BBA17E5181900C0B638 /* InfoPlist.strings in Resources */,
-				02A89BC617E5187C00C0B638 /* ClearButtonPressed.png in Resources */,
-				02A89BC517E5187C00C0B638 /* ClearButtonNormal@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -508,7 +489,6 @@
 			files = (
 				02AF069D17E4FE7B00E77647 /* RCURLRequest.m in Sources */,
 				02AF069E17E4FE7B00E77647 /* RCImageStore.m in Sources */,
-				02AF069F17E4FE7B00E77647 /* RCURLCacheViewController.m in Sources */,
 				02AF06A017E4FE7B00E77647 /* RCURLCache.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

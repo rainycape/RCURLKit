@@ -6,7 +6,6 @@
 //  Copyright (c) 2013 Rainy Cape S.L. See LICENSE file.
 //
 
-#if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 
 @class RCURLCache;
@@ -16,4 +15,3 @@
 @property(nonatomic, retain) RCURLCache *cache;
 
 @end
-#endif

@@ -6,14 +6,13 @@
 //  Copyright (c) 2013 Rainy Cape S.L. See LICENSE file.
 //
 
-#if TARGET_OS_IPHONE
 #import <QuartzCore/QuartzCore.h>
 
 #import "RCURLCache.h"
 
 #import "RCURLCacheViewController.h"
 
-@interface RCURLCacheViewController ()
+@interface RCURLCacheViewController () <UIActionSheetDelegate>
 
 @property(nonatomic, retain) NSDictionary *diskUsage;
 @property(nonatomic, getter=isClearing) BOOL clearing;
@@ -64,63 +63,7 @@
         }
         return [[self diskUsage] count];
     }
-    if (section == 1) {
-        return 1;
-    }
-    return 0;
-}
-
-- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section
-{
-    if (section == 2) {
-        return 44;
-    }
-    return 0;
-}
-
-- (UIView *)tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section
-{
-    if (section == 2) {
-        CGFloat margin = 10;
-        CGFloat width = CGRectGetWidth([tableView bounds]);
-        UIView *theContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 44)];
-        [theContainer setBackgroundColor:[UIColor clearColor]];
-        [theContainer setAutoresizingMask:UIViewAutoresizingFlexibleWidth];
-        CGRect buttonFrame = CGRectInset([theContainer bounds], margin, 0);
-        UIButton *theButton = [UIButton buttonWithType:UIButtonTypeCustom];
-        [theButton setFrame:buttonFrame];
-        [theButton setAutoresizingMask:UIViewAutoresizingFlexibleWidth];
-        [[theButton titleLabel] setFont:[UIFont boldSystemFontOfSize:19]];
-        [theButton setTitleShadowColor:[UIColor blackColor] forState:UIControlStateNormal];
-        [[theButton titleLabel] setShadowOffset:CGSizeMake(0, 1)];
-        if ([self isClearing]) {
-            [theButton setEnabled:NO];
-            UIActivityIndicatorView *indicatorView = [[UIActivityIndicatorView alloc]
-                initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
-            [indicatorView sizeToFit];
-            [indicatorView startAnimating];
-            [indicatorView setAutoresizingMask:~(UIViewAutoresizingFlexibleWidth
-                                                 | UIViewAutoresizingFlexibleHeight)];
-            [indicatorView setCenter:CGPointMake(CGRectGetMidX(buttonFrame), 22)];
-            [theButton addSubview:indicatorView];
-        } else {
-            [theButton setTitle:NSLocalizedString(@"Clear", nil) forState:UIControlStateNormal];
-        }
-        UIImage *backgroundImage = [UIImage imageNamed:@"RCURLCache.bundle/ClearButtonNormal.png"];
-        [theButton
-            setBackgroundImage:[backgroundImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
-                      forState:UIControlStateNormal];
-        UIImage *pressedImage = [UIImage imageNamed:@"RCURLCache.bundle/ClearButtonPressed.png"];
-        [theButton
-            setBackgroundImage:[pressedImage stretchableImageWithLeftCapWidth:6 topCapHeight:22]
-                      forState:UIControlStateHighlighted];
-        [theButton addTarget:self
-                      action:@selector(clearCache:)
-            forControlEvents:UIControlEventTouchUpInside];
-        [theContainer addSubview:theButton];
-        return theContainer;
-    }
-    return nil;
+    return 1;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView
@@ -131,7 +74,6 @@
     if (cell == nil) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1
                                       reuseIdentifier:CellIdentifier];
-        [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
     }
     NSDictionary *diskUsage = [self diskUsage];
     if (indexPath.section == 0) {
@@ -155,7 +97,10 @@
         }
         NSNumber *theValue = [diskUsage objectForKey:theKey];
         cell.detailTextLabel.text = [self stringWithHumanReadableSize:theValue];
-    } else {
+        cell.textLabel.textColor = [UIColor darkTextColor];
+        cell.accessoryView = nil;
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    } else if (indexPath.section == 1) {
         cell.textLabel.text = NSLocalizedString(@"Total", nil);
         unsigned long long val = 0;
         for (NSNumber *aNumber in [diskUsage allValues]) {
@@ -163,8 +108,51 @@
         }
         NSNumber *theValue = [NSNumber numberWithLongLong:val];
         cell.detailTextLabel.text = [self stringWithHumanReadableSize:theValue];
+        cell.accessoryView = nil;
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        cell.textLabel.textColor = [UIColor darkTextColor];
+    } else if (indexPath.section == 2) {
+        cell.textLabel.text = NSLocalizedString(@"Clear", nil);
+        cell.detailTextLabel.text = nil;
+        cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+        cell.accessoryView = nil;
+        cell.textLabel.textColor = self.view.tintColor;
+        if ([self isClearing]) {
+            UIActivityIndicatorView *indicatorView = [[UIActivityIndicatorView alloc]
+                initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+            [indicatorView sizeToFit];
+            [indicatorView startAnimating];
+            cell.accessoryView = indicatorView;
+        }
     }
     return cell;
+}
+
+#pragma mark - UITableViewDelegate
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if (indexPath.section == 2) {
+
+        UIActionSheet *actionSheet = [[UIActionSheet alloc]
+                     initWithTitle:NSLocalizedString(@"This will remove all cached items.", nil)
+                          delegate:self
+                 cancelButtonTitle:NSLocalizedString(@"Cancel", nil)
+            destructiveButtonTitle:NSLocalizedString(@"Clear Cache", nil)
+                 otherButtonTitles:nil];
+        [actionSheet showInView:self.view];
+
+        [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    }
+}
+
+#pragma mark - UIActionSheetDelegate
+
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex != actionSheet.cancelButtonIndex) {
+        [[RCURLCache sharedCache] clear];
+    }
 }
 
 #pragma mark - Utility functions
@@ -234,5 +222,3 @@
 }
 
 @end
-
-#endif

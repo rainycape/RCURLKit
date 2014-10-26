@@ -7,6 +7,9 @@
 //
 
 #import <RCURLKit/RCURLCache.h>
-#import <RCURLKit/RCURLCacheViewController.h>
 #import <RCURLKit/RCURLRequest.h>
 #import <RCURLKit/RCImageStore.h>
+
+#if TARGET_OS_IPHONE
+#import <RCURLKit/RCURLCacheViewController.h>
+#endif
