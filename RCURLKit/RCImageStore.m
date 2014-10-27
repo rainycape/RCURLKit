@@ -115,7 +115,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 @property(nonatomic, strong) NSMapTable *cache;
 @property(nonatomic, strong) NSMutableDictionary *mimeTypes;
 @property(nonatomic, strong) NSMutableSet *networkRequests;
-@property(nonatomic, strong) NSMapTable *requestsByURL;
+@property(nonatomic, strong) NSMutableDictionary *requestsByURL;
 
 // Used for testing
 
@@ -131,7 +131,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         self.cache = [NSMapTable strongToWeakObjectsMapTable];
         self.mimeTypes = [NSMutableDictionary dictionary];
         self.networkRequests = [NSMutableSet set];
-        self.requestsByURL = [NSMapTable strongToStrongObjectsMapTable];
+        self.requestsByURL = [NSMutableDictionary dictionary];
 
 #if TARGET_OS_IPHONE
         [[NSNotificationCenter defaultCenter]
