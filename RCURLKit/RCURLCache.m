@@ -478,17 +478,26 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     time_t now = time(NULL);
     NSNumber *theHash = [NSNumber numberWithLongLong:hash];
     NSNumber *theValue = [NSNumber numberWithLongLong:now];
-    [pendingLRUUpdates_ setObject:theValue forKey:theHash];
-    if ([pendingLRUUpdates_ count] >= kMaximumPendingLRUUpdates) {
+    NSUInteger count = 0;
+    @synchronized(self)
+    {
+        [pendingLRUUpdates_ setObject:theValue forKey:theHash];
+        count = [pendingLRUUpdates_ count];
+    }
+    if (count >= kMaximumPendingLRUUpdates) {
         [self flushPendingLURUpdates];
     }
 }
 
 - (void)flushPendingLURUpdates
 {
-    if ([pendingLRUUpdates_ count] > 0) {
-        NSMutableDictionary *theUpdates = [pendingLRUUpdates_ copy];
+    NSMutableDictionary *theUpdates = nil;
+    @synchronized(self)
+    {
+        theUpdates = [pendingLRUUpdates_ copy];
         [pendingLRUUpdates_ removeAllObjects];
+    }
+    if (theUpdates.count > 0) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
             BOOL shouldFree = NO;
             Database *db = [self databaseShouldFree:&shouldFree];
