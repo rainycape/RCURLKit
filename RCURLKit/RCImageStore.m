@@ -28,6 +28,7 @@
 
 #define dispatch_get_bg_queue() dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)
 
+NSString *const RCImageStoreErrorDomain = @"RCImageStoreErrorDomain";
 NSString *const RCImageStoreWillStartRequestNotification =
     @"RCImageStoreWillStartRequestNotification";
 NSString *const RCImageStoreDidFinishRequestNotification =
@@ -230,7 +231,9 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         if (!pendingRequest) {
             submit = YES;
             pendingRequest = [[RCImageStoreInternalRequest alloc] initWithURL:theURL];
-            [self.requestsByURL setObject:pendingRequest forKey:theKey];
+            if (theURL) {
+                [self.requestsByURL setObject:pendingRequest forKey:theURL];
+            }
         }
         request = [pendingRequest addDelegate:theDelegate withHandler:handler size:theSize];
         if (submit) {
@@ -384,6 +387,16 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     @autoreleasepool
     {
         NSURL *theURL = [theRequest URL];
+        if (!theURL) {
+            NSDictionary *userInfo = @{
+                NSLocalizedDescriptionKey : NSLocalizedString(@"nil URL", nil),
+            };
+            theRequest.error =
+                [NSError errorWithDomain:RCImageStoreErrorDomain code:0 userInfo:userInfo];
+            dispatch_async(dispatch_get_main_queue(),
+                           ^{ [self notifyFailureToDelegate:theRequest]; });
+            return;
+        }
         NSData *theData = nil;
         RCImage *theImage = [self cachedImageWithURL:theURL size:CGSizeZero data:&theData];
         dispatch_async(dispatch_get_main_queue(), ^{

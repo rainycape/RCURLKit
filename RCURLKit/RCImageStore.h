@@ -24,6 +24,7 @@ typedef void (^RCImageStoreCompletionHandler)(NSImage *image, NSURL *URL, NSErro
 
 #endif
 
+extern NSString *const RCImageStoreErrorDomain;
 extern NSString *const RCImageStoreWillStartRequestNotification;
 extern NSString *const RCImageStoreDidFinishRequestNotification;
 
