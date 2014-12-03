@@ -39,7 +39,6 @@
 		02B32EBB19F7E7950014BC67 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02B32EBA19F7E7950014BC67 /* MobileCoreServices.framework */; };
 		02B32EC519F7FE120014BC67 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 02B32EC419F7FE120014BC67 /* main.m */; };
 		02B32EC819F7FE120014BC67 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 02B32EC719F7FE120014BC67 /* AppDelegate.m */; };
-		02B32ECA19F7FE120014BC67 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 02B32EC919F7FE120014BC67 /* Images.xcassets */; };
 		02B32ECD19F7FE120014BC67 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 02B32ECB19F7FE120014BC67 /* MainMenu.xib */; };
 		02B32EE019F8023A0014BC67 /* libRCURLKitMac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 02AF06A817E4FE7B00E77647 /* libRCURLKitMac.a */; };
 /* End PBXBuildFile section */
@@ -119,7 +118,6 @@
 		02B32EC419F7FE120014BC67 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		02B32EC619F7FE120014BC67 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		02B32EC719F7FE120014BC67 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		02B32EC919F7FE120014BC67 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		02B32ECC19F7FE120014BC67 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -287,7 +285,6 @@
 			children = (
 				02B32EC619F7FE120014BC67 /* AppDelegate.h */,
 				02B32EC719F7FE120014BC67 /* AppDelegate.m */,
-				02B32EC919F7FE120014BC67 /* Images.xcassets */,
 				02B32ECB19F7FE120014BC67 /* MainMenu.xib */,
 				02B32EC219F7FE120014BC67 /* Supporting Files */,
 			);
@@ -449,7 +446,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				02B32ECA19F7FE120014BC67 /* Images.xcassets in Resources */,
 				02B32ECD19F7FE120014BC67 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
