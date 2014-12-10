@@ -278,7 +278,9 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         }
         [aReq failedWithURL:theURL error:theError imageStore:self];
     }
-    [self.requestsByURL removeObjectForKey:aRequest.URL];
+    if (aRequest.URL) {
+        [self.requestsByURL removeObjectForKey:aRequest.URL];
+    }
 }
 
 - (void)resizeImage:(RCImage *)theImage
