@@ -249,22 +249,24 @@ NSString *const RCURLRequestErrorKey = @"Error";
                 startImmediately:(BOOL)start
 {
     NSData *theData = nil;
-    NSString *encodedParameters = nil;
     if (theParameters) {
-        encodedParameters = [self encodedParameters:theParameters];
-    }
-    if ([theMethod isEqualToString:@"POST"]) {
-        theData = [encodedParameters dataUsingEncoding:NSUTF8StringEncoding];
-    } else {
-        NSString *URLString = [theURL absoluteString];
-        unichar separator = '?';
-        if ([[theURL query] length]) {
-            separator = '&';
+        NSString *encodedParameters = [self encodedParameters:theParameters];
+        if (encodedParameters.length) {
+            if ([theMethod isEqualToString:@"POST"]) {
+                theData = [encodedParameters dataUsingEncoding:NSUTF8StringEncoding];
+            } else {
+                NSString *URLString = [theURL absoluteString];
+                unichar separator = '?';
+                if ([[theURL query] length]) {
+                    separator = '&';
+                }
+                NSString *newURLString =
+                    [NSString stringWithFormat:@"%@%C%@", URLString, separator, encodedParameters];
+                theURL = [NSURL URLWithString:newURLString];
+            }
         }
-        NSString *newURLString =
-            [NSString stringWithFormat:@"%@%C%@", URLString, separator, encodedParameters];
-        theURL = [NSURL URLWithString:newURLString];
     }
+
     NSMutableURLRequest *theRequest = [NSMutableURLRequest requestWithURL:theURL];
     if (theData) {
         if (!theMethod) {
