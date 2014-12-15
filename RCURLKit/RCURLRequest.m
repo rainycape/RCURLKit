@@ -8,24 +8,24 @@
 
 #import "RCURLRequest.h"
 
-NSString * const RCURLRequestWillStartNotification = @"RCURLRequestWillStartNotification";
-NSString * const RCURLRequestDidStartNotification = @"RCURLRequestDidStartNotification";
-NSString * const RCURLRequestWillFinishNotification = @"RCURLRequestWillFinishNotification";
-NSString * const RCURLRequestDidFinishNotification = @"RCURLRequestDidFinishNotification";
+NSString *const RCURLRequestWillStartNotification = @"RCURLRequestWillStartNotification";
+NSString *const RCURLRequestDidStartNotification = @"RCURLRequestDidStartNotification";
+NSString *const RCURLRequestWillFinishNotification = @"RCURLRequestWillFinishNotification";
+NSString *const RCURLRequestDidFinishNotification = @"RCURLRequestDidFinishNotification";
 
-NSString * const RCURLRequestCancelledKey = @"Cancelled";
-NSString * const RCURLRequestFailedKey = @"Failed";
-NSString * const RCURLRequestErrorKey = @"Error";
+NSString *const RCURLRequestCancelledKey = @"Cancelled";
+NSString *const RCURLRequestFailedKey = @"Failed";
+NSString *const RCURLRequestErrorKey = @"Error";
 
 @interface RCURLRequest ()
 
 @property(nonatomic, copy) RCURLRequestHandler handler;
 @property(nonatomic, strong, readwrite) NSMutableURLRequest *request;
-@property(nonatomic, readwrite, getter = isFinished) BOOL finished;
+@property(nonatomic, readwrite, getter=isFinished) BOOL finished;
 @property(nonatomic, strong) NSURLConnection *connection;
 @property(nonatomic, strong) NSURLResponse *response;
 @property(nonatomic, strong) NSMutableData *data;
-@property(nonatomic, getter = isWaiting) BOOL waiting;
+@property(nonatomic, getter=isWaiting) BOOL waiting;
 
 @end
 
@@ -38,7 +38,6 @@ NSString * const RCURLRequestErrorKey = @"Error";
     }
     return self;
 }
-
 
 - (void)start
 {
@@ -92,18 +91,21 @@ NSString * const RCURLRequestErrorKey = @"Error";
                                                         object:self];
 }
 
-- (NSDictionary *)notificationUserInfoWithCancelled:(BOOL)cancelled failed:(BOOL)failed error:(NSError *)error
+- (NSDictionary *)notificationUserInfoWithCancelled:(BOOL)cancelled
+                                             failed:(BOOL)failed
+                                              error:(NSError *)error
 {
     return @{
-        RCURLRequestCancelledKey: @(cancelled),
-        RCURLRequestFailedKey: @(failed),
-        RCURLRequestErrorKey: error ? error : [NSNull null],
+        RCURLRequestCancelledKey : @(cancelled),
+        RCURLRequestFailedKey : @(failed),
+        RCURLRequestErrorKey : error ? error : [NSNull null],
     };
 }
 
 - (void)requestWillFinishCancelled:(BOOL)cancelled failed:(BOOL)failed error:(NSError *)error
 {
-    NSDictionary *userInfo = [self notificationUserInfoWithCancelled:cancelled failed:failed error:error];
+    NSDictionary *userInfo =
+        [self notificationUserInfoWithCancelled:cancelled failed:failed error:error];
     [[NSNotificationCenter defaultCenter] postNotificationName:RCURLRequestWillFinishNotification
                                                         object:self
                                                       userInfo:userInfo];
@@ -111,7 +113,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
 
 - (void)requestDidFinishCancelled:(BOOL)cancelled failed:(BOOL)failed error:(NSError *)error
 {
-    NSDictionary *userInfo = [self notificationUserInfoWithCancelled:cancelled failed:failed error:error];
+    NSDictionary *userInfo =
+        [self notificationUserInfoWithCancelled:cancelled failed:failed error:error];
     [[NSNotificationCenter defaultCenter] postNotificationName:RCURLRequestDidFinishNotification
                                                         object:self
                                                       userInfo:userInfo];
@@ -149,7 +152,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
     }
 }
 
-- (NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request
+- (NSURLRequest *)connection:(NSURLConnection *)connection
+             willSendRequest:(NSURLRequest *)request
             redirectResponse:(NSURLResponse *)response
 {
     if ([self redirectHandler]) {
@@ -158,7 +162,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
     return request;
 }
 
-- (NSCachedURLResponse *)connection:(NSURLConnection *)connection willCacheResponse:(NSCachedURLResponse *)cachedResponse
+- (NSCachedURLResponse *)connection:(NSURLConnection *)connection
+                  willCacheResponse:(NSCachedURLResponse *)cachedResponse
 {
     if ([self canCache]) {
         return cachedResponse;
@@ -171,21 +176,35 @@ NSString * const RCURLRequestErrorKey = @"Error";
     return [self requestWithURL:theURL data:nil handler:handler startImmediately:YES];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL data:(NSData *)theData handler:(RCURLRequestHandler)handler
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                            data:(NSData *)theData
+                         handler:(RCURLRequestHandler)handler
 {
     return [self requestWithURL:theURL data:theData handler:handler startImmediately:YES];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL data:(NSData *)theData
-                          method:(NSString *)theMethod handler:(RCURLRequestHandler)handler
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                            data:(NSData *)theData
+                          method:(NSString *)theMethod
+                         handler:(RCURLRequestHandler)handler
 {
-    return [self requestWithURL:theURL data:theData method:theMethod handler:handler startImmediately:YES];
+    return [self requestWithURL:theURL
+                           data:theData
+                         method:theMethod
+                        handler:handler
+               startImmediately:YES];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL method:(NSString *)theMethod
-                      parameters:(NSDictionary *)theParameters handler:(RCURLRequestHandler)handler
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                          method:(NSString *)theMethod
+                      parameters:(NSDictionary *)theParameters
+                         handler:(RCURLRequestHandler)handler
 {
-    return [self requestWithURL:theURL method:theMethod parameters:theParameters handler:handler startImmediately:YES];
+    return [self requestWithURL:theURL
+                         method:theMethod
+                     parameters:theParameters
+                        handler:handler
+               startImmediately:YES];
 }
 
 + (RCURLRequest *)requestWithRequest:(NSURLRequest *)theRequest handler:(RCURLRequestHandler)handler
@@ -194,20 +213,26 @@ NSString * const RCURLRequestErrorKey = @"Error";
 }
 
 + (RCURLRequest *)requestWithURL:(NSURL *)theURL
-                         handler:(RCURLRequestHandler)handler startImmediately:(BOOL)start
+                         handler:(RCURLRequestHandler)handler
+                startImmediately:(BOOL)start
 {
     return [self requestWithURL:theURL data:nil handler:handler startImmediately:start];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL data:(NSData *)theData
-                         handler:(RCURLRequestHandler)handler startImmediately:(BOOL)start
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                            data:(NSData *)theData
+                         handler:(RCURLRequestHandler)handler
+                startImmediately:(BOOL)start
 {
-    return [self requestWithURL:theURL data:theData method:nil handler:handler startImmediately:start];
+    return
+        [self requestWithURL:theURL data:theData method:nil handler:handler startImmediately:start];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL data:(NSData *)theData
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                            data:(NSData *)theData
                           method:(NSString *)theMethod
-                         handler:(RCURLRequestHandler)handler startImmediately:(BOOL)start
+                         handler:(RCURLRequestHandler)handler
+                startImmediately:(BOOL)start
 {
     NSMutableURLRequest *theRequest = [NSMutableURLRequest requestWithURL:theURL];
     if (theData) {
@@ -217,8 +242,10 @@ NSString * const RCURLRequestErrorKey = @"Error";
     return [self requestWithRequest:theRequest handler:handler startImmediately:start];
 }
 
-+ (RCURLRequest *)requestWithURL:(NSURL *)theURL method:(NSString *)theMethod
-                      parameters:(NSDictionary *)theParameters handler:(RCURLRequestHandler)handler
++ (RCURLRequest *)requestWithURL:(NSURL *)theURL
+                          method:(NSString *)theMethod
+                      parameters:(NSDictionary *)theParameters
+                         handler:(RCURLRequestHandler)handler
                 startImmediately:(BOOL)start
 {
     NSData *theData = nil;
@@ -234,7 +261,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
         if ([[theURL query] length]) {
             separator = '&';
         }
-        NSString *newURLString = [NSString stringWithFormat:@"%@%C%@", URLString, separator, encodedParameters];
+        NSString *newURLString =
+            [NSString stringWithFormat:@"%@%C%@", URLString, separator, encodedParameters];
         theURL = [NSURL URLWithString:newURLString];
     }
     NSMutableURLRequest *theRequest = [NSMutableURLRequest requestWithURL:theURL];
@@ -244,7 +272,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
         }
         [theRequest setHTTPMethod:theMethod];
         if ([theMethod isEqualToString:@"POST"]) {
-            [theRequest setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+            [theRequest setValue:@"application/x-www-form-urlencoded"
+                forHTTPHeaderField:@"Content-Type"];
         }
         [theRequest setHTTPBody:theData];
     } else if (theMethod) {
@@ -254,7 +283,8 @@ NSString * const RCURLRequestErrorKey = @"Error";
 }
 
 + (RCURLRequest *)requestWithRequest:(NSURLRequest *)theRequest
-                             handler:(RCURLRequestHandler)handler startImmediately:(BOOL)start
+                             handler:(RCURLRequestHandler)handler
+                    startImmediately:(BOOL)start
 {
     RCURLRequest *aRequest = [[RCURLRequest alloc] init];
     if ([theRequest isKindOfClass:[NSMutableURLRequest class]]) {
@@ -284,19 +314,17 @@ NSString * const RCURLRequestErrorKey = @"Error";
         } else {
             stringValue = [theValue description];
         }
-        [theComponents addObject:[NSString stringWithFormat:@"%@=%@",
-                                  [self URLEncodedString:aKey],
-                                  [self URLEncodedString:stringValue]]];
+        [theComponents addObject:[NSString stringWithFormat:@"%@=%@", [self URLEncodedString:aKey],
+                                                            [self URLEncodedString:stringValue]]];
     }
     return [theComponents componentsJoinedByString:@"&"];
 }
 
-+ (NSString *)URLEncodedString:(NSString *)theString {
-    NSString *result = (NSString *)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
-                                                                           (CFStringRef)theString,
-                                                                           NULL,
-                                                                           CFSTR(":/=,!$&'()*+;[]@#?"),
-                                                                           kCFStringEncodingUTF8));
++ (NSString *)URLEncodedString:(NSString *)theString
+{
+    NSString *result = (NSString *)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(
+        kCFAllocatorDefault, (CFStringRef)theString, NULL, CFSTR(":/=,!$&'()*+;[]@#?"),
+        kCFStringEncodingUTF8));
     return result;
 }
 
