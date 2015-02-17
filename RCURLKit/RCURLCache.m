@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 Rainy Cape S.L. See LICENSE file.
 //
 
+#import <CommonCrypto/CommonCrypto.h>
+
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #endif
@@ -470,7 +472,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (sqlite3_int64)cacheKeyWithURL:(NSURL *)theURL
 {
-    return (sqlite3_int64)[[theURL absoluteString] hash];
+    return hash64(theURL.absoluteString);
 }
 
 - (void)updateLRUWithKey:(sqlite3_int64)hash
@@ -545,4 +547,18 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     return sharedCache;
 }
 
+#pragma mark - Hashing
+
+static inline __attribute__((always_inline)) sqlite3_int64 hash64(NSString *input)
+{
+    unsigned char buf[CC_MD5_DIGEST_LENGTH];
+    const char *str = [input UTF8String];
+    CC_MD5(str, (CC_LONG)strlen(str), buf);
+    uint64_t data[2];
+    memcpy(data, buf, sizeof(buf));
+    buf[0] ^= buf[1];
+    sqlite3_int64 ret;
+    memcpy(&ret, buf, sizeof(ret));
+    return ret;
+}
 @end
