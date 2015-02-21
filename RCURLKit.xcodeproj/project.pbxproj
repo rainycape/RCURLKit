@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		022F477B19F80FEF0058969E /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 022F477A19F80FEF0058969E /* libsqlite3.dylib */; };
+		029FF0371A98A052003289A2 /* RCKVCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 029FF0361A98A052003289A2 /* RCKVCache.m */; };
+		029FF0381A98A052003289A2 /* RCKVCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 029FF0361A98A052003289A2 /* RCKVCache.m */; };
+		029FF0391A98A05B003289A2 /* RCKVCache.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 029FF0351A98A052003289A2 /* RCKVCache.h */; };
+		029FF03A1A98A05F003289A2 /* RCKVCache.h in Copy Files */ = {isa = PBXBuildFile; fileRef = 029FF0351A98A052003289A2 /* RCKVCache.h */; };
 		02A89BA917E517B700C0B638 /* RCURLKit.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF066E17E4E89900E77647 /* RCURLKit.h */; };
 		02A89BAA17E517B700C0B638 /* RCURLCache.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF068F17E4E95800E77647 /* RCURLCache.h */; };
 		02A89BAC17E517B700C0B638 /* RCURLRequest.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 02AF069317E4E95800E77647 /* RCURLRequest.h */; };
@@ -60,6 +64,7 @@
 			dstPath = include/RCURLKit;
 			dstSubfolderSpec = 16;
 			files = (
+				029FF0391A98A05B003289A2 /* RCKVCache.h in CopyFiles */,
 				02A89BA917E517B700C0B638 /* RCURLKit.h in CopyFiles */,
 				02A89BAA17E517B700C0B638 /* RCURLCache.h in CopyFiles */,
 				02A89BAC17E517B700C0B638 /* RCURLRequest.h in CopyFiles */,
@@ -73,6 +78,7 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
+				029FF03A1A98A05F003289A2 /* RCKVCache.h in Copy Files */,
 				02AF06D817E510A200E77647 /* RCURLKit.h in Copy Files */,
 				02AF06D917E510A200E77647 /* RCURLCache.h in Copy Files */,
 				02AF06DA17E510A200E77647 /* RCURLCacheViewController.h in Copy Files */,
@@ -86,6 +92,8 @@
 
 /* Begin PBXFileReference section */
 		022F477A19F80FEF0058969E /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/lib/libsqlite3.dylib; sourceTree = DEVELOPER_DIR; };
+		029FF0351A98A052003289A2 /* RCKVCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCKVCache.h; sourceTree = "<group>"; };
+		029FF0361A98A052003289A2 /* RCKVCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCKVCache.m; sourceTree = "<group>"; };
 		02A89BB217E5181900C0B638 /* RCURLKit.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RCURLKit.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		02A89BB317E5181900C0B638 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		02A89BB717E5181900C0B638 /* RCURLKitResources-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "RCURLKitResources-Info.plist"; sourceTree = "<group>"; };
@@ -241,6 +249,8 @@
 			isa = PBXGroup;
 			children = (
 				02AF066E17E4E89900E77647 /* RCURLKit.h */,
+				029FF0351A98A052003289A2 /* RCKVCache.h */,
+				029FF0361A98A052003289A2 /* RCKVCache.m */,
 				02AF068F17E4E95800E77647 /* RCURLCache.h */,
 				02AF069017E4E95800E77647 /* RCURLCache.m */,
 				02AF069117E4E95800E77647 /* RCURLCacheViewController.h */,
@@ -464,6 +474,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				029FF0371A98A052003289A2 /* RCKVCache.m in Sources */,
 				02AF069717E4E95800E77647 /* RCURLRequest.m in Sources */,
 				02AF069A17E4EBA900E77647 /* RCImageStore.m in Sources */,
 				02AF069617E4E95800E77647 /* RCURLCacheViewController.m in Sources */,
@@ -483,6 +494,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				029FF0381A98A052003289A2 /* RCKVCache.m in Sources */,
 				02AF069D17E4FE7B00E77647 /* RCURLRequest.m in Sources */,
 				02AF069E17E4FE7B00E77647 /* RCImageStore.m in Sources */,
 				02AF06A017E4FE7B00E77647 /* RCURLCache.m in Sources */,
