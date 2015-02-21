@@ -205,7 +205,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     sqlite3_stmt *load_stmt = db->load_stmt;
     sqlite3_bind_int64(load_stmt, 1, key);
     if (sqlite3_step(load_stmt) == SQLITE_ROW) {
-        RCCACHE_LOG(@"Cache hit for URL %@", theURL);
+        RCCACHE_LOG(@"Cache HIT for URL %@ (%lld)", theURL, (long long)key);
         const void *data = sqlite3_column_blob(load_stmt, 0);
         NSInteger dataSize = sqlite3_column_bytes(load_stmt, 0);
         const void *responseData = sqlite3_column_blob(load_stmt, 1);
@@ -216,6 +216,8 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
                                                  freeWhenDone:NO];
         NSHTTPURLResponse *response = [NSKeyedUnarchiver unarchiveObjectWithData:theResponseData];
         cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:theData];
+    } else {
+        RCCACHE_LOG(@"Cache MISS for URL %@ (%lld)", theURL, (long long)key);
     }
     sqlite3_reset(load_stmt);
     if (cachedResponse) {
@@ -241,9 +243,12 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     sqlite3_stmt *load_data_stmt = db->load_data_stmt;
     sqlite3_bind_int64(load_data_stmt, 1, key);
     if (sqlite3_step(load_data_stmt) == SQLITE_ROW) {
+        RCCACHE_LOG(@"Cache HIT for URL %@ (%lld)", theURL, (long long)key);
         const void *data = sqlite3_column_blob(load_data_stmt, 0);
         NSInteger dataSize = sqlite3_column_bytes(load_data_stmt, 0);
         theData = [NSData dataWithBytes:data length:dataSize];
+    } else {
+        RCCACHE_LOG(@"Cache MISS for URL %@ (%lld)", theURL, (long long)key);
     }
     sqlite3_reset(load_data_stmt);
     if (theData) {
