@@ -91,12 +91,32 @@ static Database *database_new(void)
         sqlite3_exec(db->db, "CREATE INDEX me_idx ON cache (me); ", NULL, NULL, NULL);
         sqlite3_exec(db->db, "CREATE INDEX me_lu_idx ON cache (me, lu); ", NULL, NULL, NULL);
     }
-    sqlite3_exec(db->db, CONFIGURE_CACHE_SQL, NULL, NULL, NULL);
-    sqlite3_prepare_v2(db->db, LOAD_SQL, -1, &db->load_stmt, NULL);
-    sqlite3_prepare_v2(db->db, HAS_DATA_SQL, -1, &db->has_data_stmt, NULL);
-    sqlite3_prepare_v2(db->db, LOAD_DATA_SQL, -1, &db->load_data_stmt, NULL);
-    sqlite3_prepare_v2(db->db, STORE_SQL, -1, &db->store_stmt, NULL);
-    sqlite3_prepare_v2(db->db, DELETE_SQL, -1, &db->delete_stmt, NULL);
+#define ENSURE_SQLITE_OK(x)                                                                        \
+    do {                                                                                           \
+        int retries = 0;                                                                           \
+        while (1) {                                                                                \
+            int ret = x;                                                                           \
+            if (ret == SQLITE_BUSY && retries < 5) {                                               \
+                retries++;                                                                         \
+                if ([NSThread currentThread] != [NSThread mainThread]) {                           \
+                    [NSThread sleepForTimeInterval:0.01];                                          \
+                }                                                                                  \
+                continue;                                                                          \
+            }                                                                                      \
+            if (ret != SQLITE_OK) {                                                                \
+                NSLog(@"%s returned sqlite error %d", #x, ret);                                    \
+            }                                                                                      \
+            break;                                                                                 \
+        }                                                                                          \
+    } while (0)
+
+    ENSURE_SQLITE_OK(sqlite3_exec(db->db, CONFIGURE_CACHE_SQL, NULL, NULL, NULL));
+    ENSURE_SQLITE_OK(sqlite3_exec(db->db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL));
+    ENSURE_SQLITE_OK(sqlite3_prepare_v2(db->db, LOAD_SQL, -1, &db->load_stmt, NULL));
+    ENSURE_SQLITE_OK(sqlite3_prepare_v2(db->db, HAS_DATA_SQL, -1, &db->has_data_stmt, NULL));
+    ENSURE_SQLITE_OK(sqlite3_prepare_v2(db->db, LOAD_DATA_SQL, -1, &db->load_data_stmt, NULL));
+    ENSURE_SQLITE_OK(sqlite3_prepare_v2(db->db, STORE_SQL, -1, &db->store_stmt, NULL));
+    ENSURE_SQLITE_OK(sqlite3_prepare_v2(db->db, DELETE_SQL, -1, &db->delete_stmt, NULL));
     return db;
 }
 
