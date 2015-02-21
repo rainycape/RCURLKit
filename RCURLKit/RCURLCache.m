@@ -322,7 +322,21 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     sqlite3_bind_int(store_stmt, 5, (int)[theData length]);
     sqlite3_bind_int64(store_stmt, 6, (sqlite3_int64)time(NULL));
     sqlite3_bind_null(store_stmt, 7);
-    sqlite3_step(store_stmt);
+    int retries = 0;
+    while (1) {
+        int ret = sqlite3_step(store_stmt);
+        if ((ret == SQLITE_BUSY) && retries < 10) {
+            retries++;
+            if ([NSThread currentThread] != [NSThread mainThread]) {
+                [NSThread sleepForTimeInterval:0.01];
+            }
+            continue;
+        }
+        if (ret != SQLITE_DONE) {
+            NSLog(@"Error caching %@: %d", request.URL, ret);
+        }
+        break;
+    }
     sqlite3_reset(store_stmt);
     if (shouldFree) {
         database_free(db);
