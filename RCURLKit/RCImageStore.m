@@ -291,6 +291,16 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     dispatch_async(dispatch_get_bg_queue(), ^{
         @autoreleasepool
         {
+            NSURL *sizedURL = [self sizedURL:URL size:theRequest.size];
+            RCImage *cachedImage = [self cachedImageWithURL:sizedURL];
+            if (cachedImage) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (!theRequest.cancelled) {
+                        [theRequest didReceiveImage:cachedImage withURL:URL imageStore:self];
+                    }
+                });
+                return;
+            }
             RCImage *resizedImage = [self resizeImage:theImage toSize:theRequest.size];
             NSData *resizedData = nil;
             NSString *mimeType = nil;
