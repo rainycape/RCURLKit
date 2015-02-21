@@ -74,7 +74,7 @@ typedef struct {
 static Database *database_new(void)
 {
     Database *db = malloc(sizeof(*db));
-#ifdef __i386__
+#if defined(__i386__) || defined(__amd64__)
     /* Simulator */
     NSString *dbPath = @"/tmp/rcurlcache.db";
 #else
