@@ -72,6 +72,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     }
 }
 
+- (BOOL)requiresResizing
+{
+    return _size.width > 0 || _size.height > 0;
+}
+
 @end
 
 @interface RCImageStoreInternalRequest : NSObject
@@ -246,26 +251,33 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (void)notifyDelegate:(RCImageStoreInternalRequest *)aRequest
 {
-    // Always called from a bg thread
+    // Always called from the main thread
     RCImage *image = aRequest.image;
     NSURL *theURL = aRequest.URL;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        for (RCImageStoreRequest *aReq in aRequest.delegates) {
-            if (aReq.cancelled) {
-                continue;
-            }
-            if (aReq.size.width <= 0 || aReq.size.height <= 0
-                || CGSizeEqualToSize(image.size, aReq.size)) {
-                // No resizing needed, send the image as is.
-                [aReq didReceiveImage:image withURL:theURL imageStore:self];
-                continue;
-            }
-            // Go into background to resize, cache the resized image and go
-            // back into the main thread to call back the delegate.
-            [self resizeImage:image withDelegateRequest:aReq data:aRequest.data URL:theURL];
+    for (RCImageStoreRequest *aReq in aRequest.delegates) {
+        if (aReq.cancelled) {
+            continue;
         }
-        [self.requestsByURL removeObjectForKey:theURL];
-    });
+        if ((aReq.size.width <= 0 && aReq.size.height <= 0)
+            || CGSizeEqualToSize(image.size, aReq.size)) {
+            // No resizing needed, send the image as is.
+            [aReq didReceiveImage:image withURL:theURL imageStore:self];
+            continue;
+        }
+        // Check if only one dimesion was specified
+        if (aReq.size.width <= 0) {
+            CGFloat ratio = aReq.size.height / image.size.height;
+            aReq.size = CGSizeMake(roundf(image.size.width * ratio), aReq.size.height);
+        }
+        if (aReq.size.height <= 0) {
+            CGFloat ratio = aReq.size.width / image.size.width;
+            aReq.size = CGSizeMake(aReq.size.width, roundf(image.size.height * ratio));
+        }
+        // Go into background to resize, cache the resized image and go
+        // back into the main thread to call back the delegate.
+        [self resizeImage:image withDelegateRequest:aReq data:aRequest.data URL:theURL];
+    }
+    [self finishRequest:aRequest];
 }
 
 - (void)notifyFailureToDelegate:(RCImageStoreInternalRequest *)aRequest
@@ -278,6 +290,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         }
         [aReq failedWithURL:theURL error:theError imageStore:self];
     }
+    [self finishRequest:aRequest];
+}
+
+- (void)finishRequest:(RCImageStoreInternalRequest *)aRequest
+{
     if (aRequest.URL) {
         [self.requestsByURL removeObjectForKey:aRequest.URL];
     }
@@ -368,7 +385,8 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                                              theRequest.data = data;
                                              theRequest.image = preparedImage;
 
-                                             [self notifyDelegate:theRequest];
+                                             dispatch_async(dispatch_get_main_queue(),
+                                                            ^{ [self notifyDelegate:theRequest]; });
                                          }
                                      });
                                  } else {
@@ -408,6 +426,20 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             dispatch_async(dispatch_get_main_queue(),
                            ^{ [self notifyFailureToDelegate:theRequest]; });
             return;
+        }
+        if (theRequest.delegates.count == 1
+            && [[theRequest.delegates objectAtIndex:0] requiresResizing]) {
+            // Check if we can serve this from cache without loading the original image
+            RCImageStoreRequest *delegateRequest = [theRequest.delegates objectAtIndex:0];
+            RCImage *resizedImage =
+                [self cachedImageWithURL:theURL size:delegateRequest.size data:nil];
+            if (resizedImage) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [delegateRequest didReceiveImage:resizedImage withURL:theURL imageStore:self];
+                    [self finishRequest:theRequest];
+                });
+                return;
+            }
         }
         NSData *theData = nil;
         RCImage *theImage = [self cachedImageWithURL:theURL size:CGSizeZero data:&theData];
