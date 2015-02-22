@@ -688,7 +688,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
     if (imageSource) {
         if (CGImageSourceGetStatus(imageSource) == kCGImageStatusComplete) {
-            CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
+            CFDictionaryRef options = CFDictionaryCreate(
+                kCFAllocatorDefault, (void *)&kCGImageSourceShouldCacheImmediately,
+                (void *)&kCFBooleanTrue, 1, NULL, NULL);
+            CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, options);
+            CFRelease(options);
             if (imageRef) {
                 image = [self imageWithCGImage:imageRef];
                 CGImageRelease(imageRef);
