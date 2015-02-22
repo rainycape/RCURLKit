@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Rainy Cape S.L. All rights reserved.
 //
 
-#import "RCImageStore.h"
+#import <RCURLKit/RCURLKit.h>
 
 #import "AppDelegate.h"
 
