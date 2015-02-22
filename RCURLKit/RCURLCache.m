@@ -58,7 +58,11 @@
 
 #define CONFIGURE_CACHE_SQL "PRAGMA CACHE_SIZE=20"
 
+#ifdef RCURLCACHE_DEBUG
+#define RCCACHE_LOG(...) NSLog(__VA_ARGS__)
+#else
 #define RCCACHE_LOG(...)
+#endif
 
 #define kMaximumPendingLRUUpdates (100)
 
