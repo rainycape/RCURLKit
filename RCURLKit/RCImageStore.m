@@ -219,7 +219,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     id theKey = [self cacheKeyForURL:theURL size:theSize];
 
     RCImage *image;
-    @synchronized(self)
+    @synchronized(self.cache)
     {
         image = (RCImage *)[self.cache objectForKey:theKey];
     }
@@ -545,7 +545,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 {
     id theKey = [self cacheKeyForURL:theURL size:theSize];
     RCImage *theImage = nil;
-    @synchronized(self)
+    @synchronized(self.cache)
     {
         theImage = [self.cache objectForKey:theKey];
     }
@@ -565,7 +565,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             theImage = [self imageWithData:theData];
             if (theImage) {
                 theImage = [self prepareImage:theImage];
-                @synchronized(self)
+                @synchronized(self.cache)
                 {
                     [self.cache setObject:theImage forKey:theKey];
                 }
@@ -596,7 +596,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         }
     }
     id theKey = [self cacheKeyForURL:theURL size:theSize];
-    @synchronized(self)
+    @synchronized(self.cache)
     {
         [self.cache setObject:theImage forKey:theKey];
     }
@@ -666,7 +666,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 - (void)didReceiveMemoryWarning:(NSNotification *)aNotification
 {
     /* Empty the cache from the main thread */
-    @synchronized(self)
+    @synchronized(self.cache)
     {
         [self.cache removeAllObjects];
     }
