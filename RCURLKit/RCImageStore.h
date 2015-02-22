@@ -29,6 +29,7 @@ extern NSString *const RCImageStoreWillStartRequestNotification;
 extern NSString *const RCImageStoreDidFinishRequestNotification;
 
 @class RCImageStore;
+@protocol RCImageResizer;
 
 @interface RCImageStoreRequest : NSObject
 
@@ -61,6 +62,7 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
 
 @property(nonatomic, strong) NSString *userAgent;
 @property(nonatomic, getter=requiresOKResponse) BOOL requireOKResponse;
+@property(nonatomic, strong) id<RCImageResizer> resizer;
 @property(nonatomic) BOOL predecode;
 #if TARGET_OS_IPHONE
 @property(nonatomic, retain) UIColor *predecodingBackgroundColor;
@@ -113,5 +115,11 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
 + (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                                         size:(CGSize)theSize
                            completionHandler:(RCImageStoreCompletionHandler)handler;
+
+@end
+
+@protocol RCImageResizer <NSObject>
+
+- (CGImageRef)imageByResizingImage:(CGImageRef)theImage toSize:(CGSize)theSize;
 
 @end

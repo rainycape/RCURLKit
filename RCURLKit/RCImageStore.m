@@ -430,7 +430,20 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 #else
     CGImageRef cgImage = [image CGImageForProposedRect:NULL context:nil hints:nil];
 #endif
-    CGSize imageSize = CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage));
+    CGImageRef imageRef = NULL;
+    if (self.resizer) {
+        imageRef = [self.resizer imageByResizingImage:cgImage toSize:theSize];
+    }
+    if (!imageRef) {
+        imageRef = [self imageByResizingImage:cgImage toSize:theSize];
+    }
+    RCImage *resized = [self imageWithCGImage:imageRef];
+    return resized;
+}
+
+- (CGImageRef)imageByResizingImage:(CGImageRef)theImage toSize:(CGSize)theSize
+{
+    CGSize imageSize = CGSizeMake(CGImageGetWidth(theImage), CGImageGetHeight(theImage));
     CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();
     CGContextRef ctx = CGBitmapContextCreate(NULL, theSize.width, theSize.height, 8, 0, colorspace,
                                              (CGBitmapInfo)kCGImageAlphaPremultipliedFirst);
@@ -453,13 +466,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     CGContextTranslateCTM(ctx, -trans.x, -trans.y);
     CGContextScaleCTM(ctx, ratio, ratio);
 
-    CGContextDrawImage(ctx, CGRectMake(0, 0, imageSize.width, imageSize.height), cgImage);
+    CGContextDrawImage(ctx, CGRectMake(0, 0, imageSize.width, imageSize.height), theImage);
     CGImageRef imageRef = CGBitmapContextCreateImage(ctx);
-    RCImage *resized = [self imageWithCGImage:imageRef];
     CGColorSpaceRelease(colorspace);
     CGContextRelease(ctx);
-    CGImageRelease(imageRef);
-    return resized;
+    return imageRef;
 }
 
 - (RCImage *)prepareImage:(RCImage *)image
