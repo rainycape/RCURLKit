@@ -19,7 +19,17 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    // Insert code here to initialize your application
+    NSUserDefaults *standardUserDefaults = [NSUserDefaults standardUserDefaults];
+    if ([standardUserDefaults objectForKey:@"width"]) {
+        [self.width setFloatValue:[standardUserDefaults floatForKey:@"width"]];
+    }
+    if ([standardUserDefaults objectForKey:@"height"]) {
+        [self.height setFloatValue:[standardUserDefaults floatForKey:@"height"]];
+    }
+    if ([standardUserDefaults objectForKey:@"URL"]) {
+        [self.URL setStringValue:[standardUserDefaults objectForKey:@"URL"]];
+        [self updateImage:nil];
+    }
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
@@ -32,6 +42,11 @@
     CGFloat width = [self.width floatValue];
     CGFloat height = [self.height floatValue];
     NSString *URL = [self.URL stringValue];
+    NSUserDefaults *standardUserDefaults = [NSUserDefaults standardUserDefaults];
+    [standardUserDefaults setFloat:width forKey:@"width"];
+    [standardUserDefaults setFloat:height forKey:@"height"];
+    [standardUserDefaults setObject:URL forKey:@"URL"];
+    [standardUserDefaults synchronize];
     if (URL) {
         [RCImageStore requestImageWithURL:[NSURL URLWithString:URL]
                                      size:CGSizeMake(width, height)
