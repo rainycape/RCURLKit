@@ -19,6 +19,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    [[RCURLCache sharedCache] clear];
     NSUserDefaults *standardUserDefaults = [NSUserDefaults standardUserDefaults];
     if ([standardUserDefaults objectForKey:@"width"]) {
         [self.width setFloatValue:[standardUserDefaults floatForKey:@"width"]];
