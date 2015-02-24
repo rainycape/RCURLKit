@@ -118,7 +118,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (void)postNotificationName:(NSString *)theName request:(NSURLRequest *)theRequest;
 
-@property(nonatomic, strong) NSMapTable *cache;
+@property(nonatomic, strong) NSMutableDictionary *cacheLRU;
 @property(nonatomic, strong) NSMutableDictionary *mimeTypes;
 @property(nonatomic, strong) NSMutableSet *networkRequests;
 @property(nonatomic, strong) NSMutableDictionary *requestsByURL;
@@ -129,15 +129,19 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 @implementation RCImageStore {
     CGColorRef _predecodingBackgroundColor;
+    CFMutableDictionaryRef _cache;
 }
 
 - (id)init
 {
     if (self = [super init]) {
-        self.cache = [NSMapTable strongToWeakObjectsMapTable];
+        _cache = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks,
+                                           &kCFTypeDictionaryValueCallBacks);
+        self.cacheLRU = [[NSMutableDictionary alloc] init];
         self.mimeTypes = [NSMutableDictionary dictionary];
         self.networkRequests = [NSMutableSet set];
         self.requestsByURL = [NSMutableDictionary dictionary];
+        [self startGarbageCollection];
 
 #if TARGET_OS_IPHONE
         [[NSNotificationCenter defaultCenter]
@@ -155,6 +159,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     CGColorRelease(_predecodingBackgroundColor);
+    if (_cache) {
+        CFRelease(_cache);
+        _cache = NULL;
+    }
 }
 
 #if TARGET_OS_IPHONE
@@ -219,11 +227,12 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     id theKey = [self cacheKeyForURL:theURL size:theSize];
 
     RCImage *image;
-    @synchronized(self.cache)
+    @synchronized((__bridge NSDictionary *)_cache)
     {
-        image = (RCImage *)[self.cache objectForKey:theKey];
+        image = (RCImage *)CFDictionaryGetValue(_cache, (void *)theKey);
     }
     if (image) {
+        [self updateLRUForKey:theKey];
         if (handler) {
             handler(image, theURL, nil);
         } else {
@@ -518,7 +527,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             alphaInfo = kCGImageAlphaNoneSkipFirst;
         }
         CGContextRef ctx = CGBitmapContextCreate(NULL, width, height, 8, width * 4, colorspace,
-                                                 alphaInfo | kCGBitmapByteOrder32Little);
+                                                 alphaInfo | kCGBitmapByteOrder32Host);
         CGRect imageRect = CGRectMake(0, 0, width, height);
         if (_predecodingBackgroundColor) {
             CGContextSetFillColorWithColor(ctx, _predecodingBackgroundColor);
@@ -545,19 +554,13 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 {
     id theKey = [self cacheKeyForURL:theURL size:theSize];
     RCImage *theImage = nil;
-    @synchronized(self.cache)
+    @synchronized((__bridge NSDictionary *)_cache)
     {
-        theImage = [self.cache objectForKey:theKey];
+        theImage = CFDictionaryGetValue(_cache, (void *)theKey);
     }
     if (!theImage) {
         RCURLCache *sharedCache = [RCURLCache sharedCache];
         NSData *theData = [sharedCache cachedDataForURL:[self sizedURL:theURL size:theSize]];
-        if (!theData && theSize.width > 0 && theSize.height > 0) {
-            // At this point we're looking for the original image, so the
-            // in-memory cache key needs to be adjusted.
-            theKey = [self cacheKeyForURL:theURL size:CGSizeZero];
-            theData = [sharedCache cachedDataForURL:theURL];
-        }
         if (theData) {
             if (outData) {
                 *outData = theData;
@@ -565,9 +568,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             theImage = [self imageWithData:theData];
             if (theImage) {
                 theImage = [self prepareImage:theImage];
-                @synchronized(self.cache)
+                @synchronized((__bridge NSDictionary *)_cache)
                 {
-                    [self.cache setObject:theImage forKey:theKey];
+                    CFDictionarySetValue(_cache, (void *)theKey, (void *)theImage);
+                    [self updateLRUForKey:theKey];
                 }
             }
         }
@@ -596,9 +600,9 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         }
     }
     id theKey = [self cacheKeyForURL:theURL size:theSize];
-    @synchronized(self.cache)
+    @synchronized((__bridge NSDictionary *)_cache)
     {
-        [self.cache setObject:theImage forKey:theKey];
+        CFDictionarySetValue(_cache, (void *)theKey, (void *)theImage);
     }
     // Modify the URL in case it's stored a resized image
     theURL = [self sizedURL:theURL size:theSize];
@@ -622,7 +626,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (id)cacheKeyForURL:(NSURL *)theURL size:(CGSize)theSize
 {
-    if (theSize.width <= 0 || theSize.height <= 0) {
+    if (theSize.width <= 0 && theSize.height <= 0) {
         return theURL.absoluteString;
     }
     return [NSString
@@ -631,7 +635,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (NSURL *)sizedURL:(NSURL *)theURL size:(CGSize)theSize
 {
-    if (theSize.width > 0 && theSize.height > 0) {
+    if (theSize.width > 0 || theSize.height > 0) {
         return
             [NSURL URLWithString:[NSString stringWithFormat:@"%@__image_store_w%f__image_store_h%f",
                                                             theURL.absoluteString, theSize.width,
@@ -666,9 +670,58 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 - (void)didReceiveMemoryWarning:(NSNotification *)aNotification
 {
     /* Empty the cache from the main thread */
-    @synchronized(self.cache)
+    @synchronized((__bridge NSDictionary *)_cache)
     {
-        [self.cache removeAllObjects];
+        CFDictionaryRemoveAllValues(_cache);
+    }
+}
+
+#pragma mark - Garbage collection
+
+- (void)startGarbageCollection
+{
+    __weak RCImageStore *imageStore = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(30 * NSEC_PER_SEC)),
+                   dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        if (imageStore) {
+            [imageStore garbageCollect];
+            [imageStore startGarbageCollection];
+        }
+    });
+}
+
+- (void)garbageCollect
+{
+    // Collect images not used in the last minute held
+    // only by the cache dictionary.
+    int kMaxLRU = 60;
+    @synchronized((__bridge NSDictionary *)_cache)
+    {
+        time_t now = time(NULL);
+        CFIndex count = CFDictionaryGetCount(_cache);
+        const void *keys[count];
+        const void *values[count];
+        CFDictionaryGetKeysAndValues(_cache, keys, values);
+        for (CFIndex ii = 0; ii < count; ii++) {
+            if (CFGetRetainCount(values[ii]) == 1) {
+                // Only the cache is retaining this image, check LRU
+                // and remove it appropriate.
+                id aKey = (__bridge id)(keys[ii]);
+                time_t lru = [[self.cacheLRU objectForKey:aKey] longValue];
+                if (lru == 0 || now - lru < -kMaxLRU) {
+                    CFDictionaryRemoveValue(_cache, keys[ii]);
+                }
+            }
+        }
+    }
+}
+
+- (void)updateLRUForKey:(id)aKey
+{
+    @synchronized(self.cacheLRU)
+    {
+        time_t now = time(NULL);
+        [self.cacheLRU setObject:@(now) forKey:aKey];
     }
 }
 
