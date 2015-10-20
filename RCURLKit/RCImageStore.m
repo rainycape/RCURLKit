@@ -599,6 +599,14 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             return;
         }
     }
+    if (!theData) {
+        if (theImage) {
+            theData = [self encodePNGImage:theImage];
+        }
+        if (!theData) {
+            return;
+        }
+    }
     id theKey = [self cacheKeyForURL:theURL size:theSize];
     @synchronized((__bridge NSDictionary *)_cache)
     {
