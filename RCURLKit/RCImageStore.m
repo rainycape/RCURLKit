@@ -37,6 +37,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 @interface RCImageStoreRequest ()
 
 @property(nonatomic) CGSize size;
+@property(nonatomic) RCImageStoreResizingType resizingType;
 @property(nonatomic, weak) id<RCImageStoreDelegate> delegate;
 @property(nonatomic, copy) RCImageStoreCompletionHandler completionHandler;
 @property(nonatomic) BOOL cancelled;
@@ -103,9 +104,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 - (RCImageStoreRequest *)addDelegate:(id<RCImageStoreDelegate>)delegate
                          withHandler:(RCImageStoreCompletionHandler)handler
                                 size:(CGSize)size
+                        resizingType:(RCImageStoreResizingType)resizingType
 {
     RCImageStoreRequest *aReq = [[RCImageStoreRequest alloc] init];
     aReq.size = size;
+    aReq.resizingType = resizingType;
     aReq.delegate = delegate;
     aReq.completionHandler = handler;
     [self.delegates addObject:aReq];
@@ -190,6 +193,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
     return [self requestImageWithURL:theURL
                                 size:CGSizeZero
+                        resizingType:RCImageStoreResizingTypeDefault
                             delegate:theDelegate
                    completionHandler:nil];
 }
@@ -199,32 +203,69 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                                     delegate:(id<RCImageStoreDelegate>)theDelegate
 
 {
-    return
-        [self requestImageWithURL:theURL size:theSize delegate:theDelegate completionHandler:nil];
+    return [self requestImageWithURL:theURL
+                                size:theSize
+                        resizingType:RCImageStoreResizingTypeDefault
+                            delegate:theDelegate
+                   completionHandler:nil];
+}
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate
+
+{
+    return [self requestImageWithURL:theURL
+                                size:theSize
+                        resizingType:resizingType
+                            delegate:theDelegate
+                   completionHandler:nil];
 }
 
 - (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                            completionHandler:(RCImageStoreCompletionHandler)handler
 {
-    return [self requestImageWithURL:theURL size:CGSizeZero delegate:nil completionHandler:handler];
+    return [self requestImageWithURL:theURL
+                                size:CGSizeZero
+                        resizingType:RCImageStoreResizingTypeDefault
+                            delegate:nil
+                   completionHandler:handler];
 }
 
 - (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                                         size:(CGSize)theSize
                            completionHandler:(RCImageStoreCompletionHandler)handler
 {
-    return [self requestImageWithURL:theURL size:theSize delegate:nil completionHandler:handler];
+    return [self requestImageWithURL:theURL
+                                size:theSize
+                        resizingType:RCImageStoreResizingTypeDefault
+                            delegate:nil
+                   completionHandler:handler];
 }
 
 - (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                                         size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                           completionHandler:(RCImageStoreCompletionHandler)handler
+{
+    return [self requestImageWithURL:theURL
+                                size:theSize
+                        resizingType:resizingType
+                            delegate:nil
+                   completionHandler:handler];
+}
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
                                     delegate:(id<RCImageStoreDelegate>)theDelegate
                            completionHandler:(RCImageStoreCompletionHandler)handler
 
 {
     RCImageStoreRequest *request = NULL;
 
-    id theKey = [self cacheKeyForURL:theURL size:theSize];
+    id theKey = [self cacheKeyForURL:theURL size:theSize resizingType:resizingType];
 
     RCImage *image;
     @synchronized((__bridge NSDictionary *)_cache)
@@ -249,7 +290,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                 [self.requestsByURL setObject:pendingRequest forKey:theURL];
             }
         }
-        request = [pendingRequest addDelegate:theDelegate withHandler:handler size:theSize];
+        request = [pendingRequest addDelegate:theDelegate
+                                  withHandler:handler
+                                         size:theSize
+                                 resizingType:resizingType];
         if (submit) {
             dispatch_async(dispatch_get_bg_queue(), ^{ [self performRequest:pendingRequest]; });
         }
@@ -317,8 +361,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     dispatch_async(dispatch_get_bg_queue(), ^{
         @autoreleasepool
         {
-            NSURL *sizedURL = [self sizedURL:URL size:theRequest.size];
-            RCImage *cachedImage = [self cachedImageWithURL:sizedURL];
+            NSURL *cacheURL = [self cacheURLWithURL:URL
+                                               size:theRequest.size
+                                       resizingType:theRequest.resizingType];
+            RCImage *cachedImage = [self cachedImageWithURL:cacheURL];
             if (cachedImage) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (!theRequest.cancelled) {
@@ -327,7 +373,9 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                 });
                 return;
             }
-            RCImage *resizedImage = [self resizeImage:theImage toSize:theRequest.size];
+            RCImage *resizedImage = [self resizeImage:theImage
+                                               toSize:theRequest.size
+                                         resizingType:theRequest.resizingType];
             NSData *resizedData = nil;
             NSString *mimeType = nil;
             if (data) {
@@ -353,7 +401,8 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                     withData:resizedData
                     response:nil
                       forURL:URL
-                        size:theRequest.size];
+                        size:theRequest.size
+                resizingType:theRequest.resizingType];
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (!theRequest.cancelled) {
                     [theRequest didReceiveImage:resizedImage withURL:URL imageStore:self];
@@ -389,7 +438,8 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                                                      withData:data
                                                      response:response
                                                        forURL:theURL
-                                                         size:CGSizeZero];
+                                                         size:CGSizeZero
+                                                 resizingType:RCImageStoreResizingTypeDefault];
 
                                              theRequest.data = data;
                                              theRequest.image = preparedImage;
@@ -440,8 +490,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             && [[theRequest.delegates objectAtIndex:0] requiresResizing]) {
             // Check if we can serve this from cache without loading the original image
             RCImageStoreRequest *delegateRequest = [theRequest.delegates objectAtIndex:0];
-            RCImage *resizedImage =
-                [self cachedImageWithURL:theURL size:delegateRequest.size data:nil];
+            RCImage *resizedImage = [self cachedImageWithURL:theURL
+                                                        size:delegateRequest.size
+                                                resizingType:delegateRequest.resizingType
+                                                        data:nil];
             if (resizedImage) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [delegateRequest didReceiveImage:resizedImage withURL:theURL imageStore:self];
@@ -451,7 +503,10 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             }
         }
         NSData *theData = nil;
-        RCImage *theImage = [self cachedImageWithURL:theURL size:CGSizeZero data:&theData];
+        RCImage *theImage = [self cachedImageWithURL:theURL
+                                                size:CGSizeZero
+                                        resizingType:RCImageStoreResizingTypeDefault
+                                                data:&theData];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (theImage) {
                 theRequest.data = theData;
@@ -464,7 +519,9 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     }
 }
 
-- (RCImage *)resizeImage:(RCImage *)image toSize:(CGSize)theSize
+- (RCImage *)resizeImage:(RCImage *)image
+                  toSize:(CGSize)theSize
+            resizingType:(RCImageStoreResizingType)resizingType
 {
 #if TARGET_OS_IPHONE
     CGImageRef cgImage = image.CGImage;
@@ -473,16 +530,19 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 #endif
     CGImageRef imageRef = NULL;
     if (self.resizer) {
-        imageRef = [self.resizer imageByResizingImage:cgImage toSize:theSize];
+        imageRef =
+            [self.resizer imageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
     }
     if (!imageRef) {
-        imageRef = [self imageByResizingImage:cgImage toSize:theSize];
+        imageRef = [self imageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
     }
     RCImage *resized = [self imageWithCGImage:imageRef];
     return resized;
 }
 
-- (CGImageRef)imageByResizingImage:(CGImageRef)theImage toSize:(CGSize)theSize
+- (CGImageRef)imageByResizingImage:(CGImageRef)theImage
+                            toSize:(CGSize)theSize
+                      resizingType:(RCImageStoreResizingType)resizingType
 {
     CGSize imageSize = CGSizeMake(CGImageGetWidth(theImage), CGImageGetHeight(theImage));
     CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();
@@ -493,16 +553,31 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     CGFloat widthRatio = theSize.width / imageSize.width;
     CGFloat heightRatio = theSize.height / imageSize.height;
 
-    CGFloat ratio;
+    CGFloat ratio = 1;
     CGPoint trans = CGPointZero;
-    if (widthRatio < heightRatio) {
-        // Crop width
-        ratio = heightRatio;
-        trans.x = (imageSize.width * ratio - theSize.width) / 2;
-    } else {
-        // Crop height
-        ratio = widthRatio;
-        trans.y = (imageSize.height * ratio - theSize.height) / 2;
+    switch (resizingType) {
+    case RCImageStoreResizingTypeCenterCrop:
+        if (widthRatio < heightRatio) {
+            // Crop width
+            ratio = heightRatio;
+            trans.x = (imageSize.width * ratio - theSize.width) / 2;
+        } else {
+            // Crop height
+            ratio = widthRatio;
+            trans.y = (imageSize.height * ratio - theSize.height) / 2;
+        }
+        break;
+    case RCImageStoreResizingTypeFit:
+        if (widthRatio < heightRatio) {
+            // Fit width
+            ratio = widthRatio;
+            trans.y = (imageSize.height * ratio - theSize.height) / 2;
+        } else {
+            // Fit height
+            ratio = heightRatio;
+            trans.x = (imageSize.width * ratio - theSize.width) / 2;
+        }
+        break;
     }
     CGContextTranslateCTM(ctx, -trans.x, -trans.y);
     CGContextScaleCTM(ctx, ratio, ratio);
@@ -547,12 +622,18 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 
 - (RCImage *)cachedImageWithURL:(NSURL *)theURL
 {
-    return [self cachedImageWithURL:theURL size:CGSizeZero data:nil];
+    return [self cachedImageWithURL:theURL
+                               size:CGSizeZero
+                       resizingType:RCImageStoreResizingTypeDefault
+                               data:nil];
 }
 
-- (RCImage *)cachedImageWithURL:(NSURL *)theURL size:(CGSize)theSize data:(NSData **)outData
+- (RCImage *)cachedImageWithURL:(NSURL *)theURL
+                           size:(CGSize)theSize
+                   resizingType:(RCImageStoreResizingType)resizingType
+                           data:(NSData **)outData
 {
-    id theKey = [self cacheKeyForURL:theURL size:theSize];
+    id theKey = [self cacheKeyForURL:theURL size:theSize resizingType:resizingType];
     RCImage *theImage = nil;
     @synchronized((__bridge NSDictionary *)_cache)
     {
@@ -560,7 +641,8 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     }
     if (!theImage) {
         RCURLCache *sharedCache = [RCURLCache sharedCache];
-        NSData *theData = [sharedCache cachedDataForURL:[self sizedURL:theURL size:theSize]];
+        NSURL *cacheURL = [self cacheURLWithURL:theURL size:theSize resizingType:resizingType];
+        NSData *theData = [sharedCache cachedDataForURL:cacheURL];
         if (theData) {
             if (outData) {
                 *outData = theData;
@@ -584,7 +666,12 @@ NSString *const RCImageStoreDidFinishRequestNotification =
           response:(NSURLResponse *)response
             forURL:(NSURL *)theURL
 {
-    [self cacheImage:theImage withData:theData response:response forURL:theURL size:CGSizeZero];
+    [self cacheImage:theImage
+            withData:theData
+            response:response
+              forURL:theURL
+                size:CGSizeZero
+        resizingType:RCImageStoreResizingTypeDefault];
 }
 
 - (void)cacheImage:(RCImage *)theImage
@@ -592,6 +679,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
           response:(NSURLResponse *)response
             forURL:(NSURL *)theURL
               size:(CGSize)theSize
+      resizingType:(RCImageStoreResizingType)resizingType
 {
     if (!theImage) {
         theImage = [self imageWithData:theData];
@@ -607,13 +695,13 @@ NSString *const RCImageStoreDidFinishRequestNotification =
             return;
         }
     }
-    id theKey = [self cacheKeyForURL:theURL size:theSize];
+    id theKey = [self cacheKeyForURL:theURL size:theSize resizingType:resizingType];
     @synchronized((__bridge NSDictionary *)_cache)
     {
         CFDictionarySetValue(_cache, (void *)theKey, (void *)theImage);
     }
     // Modify the URL in case it's stored a resized image
-    theURL = [self sizedURL:theURL size:theSize];
+    theURL = [self cacheURLWithURL:theURL size:theSize resizingType:resizingType];
     NSURLRequest *theRequest = [NSURLRequest requestWithURL:theURL];
     if (!response) {
         NSString *imageFormat = [self imageFormatWithData:theData];
@@ -632,22 +720,26 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     }
 }
 
-- (id)cacheKeyForURL:(NSURL *)theURL size:(CGSize)theSize
+- (id)cacheKeyForURL:(NSURL *)theURL
+                size:(CGSize)theSize
+        resizingType:(RCImageStoreResizingType)resizingType
 {
     if (theSize.width <= 0 && theSize.height <= 0) {
         return theURL.absoluteString;
     }
-    return [NSString
-        stringWithFormat:@"%fx%f-%@", theSize.width, theSize.height, theURL.absoluteString];
+    return [NSString stringWithFormat:@"%fx%f:%d-%@", theSize.width, theSize.height,
+                                      (int)resizingType, theURL.absoluteString];
 }
 
-- (NSURL *)sizedURL:(NSURL *)theURL size:(CGSize)theSize
+- (NSURL *)cacheURLWithURL:(NSURL *)theURL
+                      size:(CGSize)theSize
+              resizingType:(RCImageStoreResizingType)resizingType
 {
     if (theSize.width > 0 || theSize.height > 0) {
-        return
-            [NSURL URLWithString:[NSString stringWithFormat:@"%@__image_store_w%f__image_store_h%f",
-                                                            theURL.absoluteString, theSize.width,
-                                                            theSize.height]];
+        NSString *URLString =
+            [NSString stringWithFormat:@"%@_isw%f_ish%f_ishrt%d", theURL.absoluteString,
+                                       theSize.width, theSize.height, (int)resizingType];
+        return [NSURL URLWithString:URLString];
     }
     return theURL;
 }
@@ -841,6 +933,17 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 }
 
 + (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate
+{
+    return [[self sharedStore] requestImageWithURL:theURL
+                                              size:theSize
+                                      resizingType:resizingType
+                                          delegate:theDelegate];
+}
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                            completionHandler:(RCImageStoreCompletionHandler)handler
 {
     return [[self sharedStore] requestImageWithURL:theURL completionHandler:handler];
@@ -851,6 +954,17 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                            completionHandler:(RCImageStoreCompletionHandler)handler
 {
     return [[self sharedStore] requestImageWithURL:theURL size:theSize completionHandler:handler];
+}
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                           completionHandler:(RCImageStoreCompletionHandler)handler
+{
+    return [[self sharedStore] requestImageWithURL:theURL
+                                              size:theSize
+                                      resizingType:resizingType
+                                 completionHandler:handler];
 }
 
 @end

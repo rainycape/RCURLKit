@@ -8,6 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
+typedef NS_ENUM(NSInteger, RCImageStoreResizingType) {
+    RCImageStoreResizingTypeCenterCrop,
+    RCImageStoreResizingTypeFit,
+
+    RCImageStoreResizingTypeDefault = RCImageStoreResizingTypeCenterCrop,
+};
+
 #if TARGET_OS_IPHONE
 
 #import <UIKit/UIKit.h>
@@ -76,10 +83,20 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
                                     delegate:(id<RCImageStoreDelegate>)theDelegate;
 
 - (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                            completionHandler:(RCImageStoreCompletionHandler)handler;
 
 - (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                                         size:(CGSize)theSize
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
+
+- (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
                            completionHandler:(RCImageStoreCompletionHandler)handler;
 
 #if TARGET_OS_IPHONE
@@ -110,16 +127,28 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
                                     delegate:(id<RCImageStoreDelegate>)theDelegate;
 
 + (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                                    delegate:(id<RCImageStoreDelegate>)theDelegate;
+
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                            completionHandler:(RCImageStoreCompletionHandler)handler;
 
 + (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
                                         size:(CGSize)theSize
                            completionHandler:(RCImageStoreCompletionHandler)handler;
 
++ (RCImageStoreRequest *)requestImageWithURL:(NSURL *)theURL
+                                        size:(CGSize)theSize
+                                resizingType:(RCImageStoreResizingType)resizingType
+                           completionHandler:(RCImageStoreCompletionHandler)handler;
+
 @end
 
 @protocol RCImageResizer <NSObject>
 
-- (CGImageRef)imageByResizingImage:(CGImageRef)theImage toSize:(CGSize)theSize;
+- (CGImageRef)imageByResizingImage:(CGImageRef)theImage
+                            toSize:(CGSize)theSize
+                      resizingType:(RCImageStoreResizingType)resizingType;
 
 @end
