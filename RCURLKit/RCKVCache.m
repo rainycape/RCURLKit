@@ -79,7 +79,7 @@ static NSString *const kKVCacheExpirationHeader = @"X-RCURLCache-Expiration";
 {
     NSURL *cacheURL = [self cacheURLWithKey:theKey];
     NSURLRequest *theRequest = [[NSURLRequest alloc] initWithURL:cacheURL];
-    [self.cache storeCachedResponse:nil forRequest:theRequest];
+    [self.cache deleteCachedResponseForRequest:theRequest];
 }
 
 #pragma mark - Internal methods
