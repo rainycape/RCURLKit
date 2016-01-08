@@ -10,9 +10,9 @@
 
 @implementation RCImageStoreEntropyResizer
 
-- (CGImageRef)imageByResizingImage:(CGImageRef)theImage
-                            toSize:(CGSize)theSize
-                      resizingType:(RCImageStoreResizingType)resizingType
+- (CGImageRef)newImageByResizingImage:(CGImageRef)theImage
+                               toSize:(CGSize)theSize
+                         resizingType:(RCImageStoreResizingType)resizingType
 {
     CGSize imageSize = CGSizeMake(CGImageGetWidth(theImage), CGImageGetHeight(theImage));
     CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();

@@ -531,18 +531,19 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     CGImageRef imageRef = NULL;
     if (self.resizer) {
         imageRef =
-            [self.resizer imageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
+            [self.resizer newImageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
     }
     if (!imageRef) {
-        imageRef = [self imageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
+        imageRef = [self newImageByResizingImage:cgImage toSize:theSize resizingType:resizingType];
     }
     RCImage *resized = [self imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
     return resized;
 }
 
-- (CGImageRef)imageByResizingImage:(CGImageRef)theImage
-                            toSize:(CGSize)theSize
-                      resizingType:(RCImageStoreResizingType)resizingType
+- (CGImageRef)newImageByResizingImage:(CGImageRef)theImage
+                               toSize:(CGSize)theSize
+                         resizingType:(RCImageStoreResizingType)resizingType
 {
     CGSize imageSize = CGSizeMake(CGImageGetWidth(theImage), CGImageGetHeight(theImage));
     CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();

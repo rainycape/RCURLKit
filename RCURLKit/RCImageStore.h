@@ -147,8 +147,8 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
 
 @protocol RCImageResizer <NSObject>
 
-- (CGImageRef)imageByResizingImage:(CGImageRef)theImage
-                            toSize:(CGSize)theSize
-                      resizingType:(RCImageStoreResizingType)resizingType;
+- (CGImageRef)newImageByResizingImage:(CGImageRef)theImage
+                               toSize:(CGSize)theSize
+                         resizingType:(RCImageStoreResizingType)resizingType;
 
 @end
