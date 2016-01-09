@@ -75,18 +75,9 @@ typedef struct {
     sqlite3_stmt *delete_stmt;
 } Database;
 
-static Database *database_new(void)
+static Database *database_new(NSString *dbPath)
 {
     Database *db = malloc(sizeof(*db));
-#if defined(__i386__) || defined(__amd64__)
-    /* Simulator */
-    NSString *dbPath = @"/tmp/rcurlcache.db";
-#else
-    /* Device */
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *dbPath = [documentsDirectory stringByAppendingPathComponent:@"rcurlcache.db"];
-#endif
     BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:dbPath];
     sqlite3_open([dbPath UTF8String], &db->db);
     if (!exists) {
@@ -156,7 +147,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 {
     if ((self
          = [super initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:path])) {
-        _db = database_new();
+        _db = database_new([self databasePath]);
         [self setPendingLRUUpdates:[NSMutableDictionary
                                        dictionaryWithCapacity:kMaximumPendingLRUUpdates]];
 #if TARGET_OS_IPHONE
@@ -175,6 +166,28 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     database_free(_db);
+}
+
+#pragma mark - Database path
+
+- (NSString *)databasePath
+{
+    NSString *cacheFilename = @"rcurlcache.db";
+#if TARGET_OS_IPHONE && (defined(__i386__) || defined(__amd64__))
+    /* Simulator */
+    return [@"/tmp" stringByAppendingPathComponent:cacheFilename];
+#else
+    /* Device or OS X */
+    NSString *cachesDirectory =
+        [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+#if !TARGET_OS_IPHONE
+    // Only do this for OS X to keep database in the same location than
+    // it was on iOS.
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    cachesDirectory = [cachesDirectory stringByAppendingPathComponent:bundleIdentifier];
+#endif
+    return [cachesDirectory stringByAppendingPathComponent:cacheFilename];
+#endif
 }
 
 #pragma mark - Testing if cached data is available
@@ -570,7 +583,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
         return _db;
     }
     *shouldFree = YES;
-    return database_new();
+    return database_new([self databasePath]);
 }
 
 #pragma mark - NSNotification handlers
