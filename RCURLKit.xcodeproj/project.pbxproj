@@ -844,9 +844,8 @@
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "RCURLKit/RCURLKit-Prefix.pch";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RCURLKitMac;
 				PUBLIC_HEADERS_FOLDER_PATH = include/RCURLKit;
 				SDKROOT = macosx;
@@ -861,9 +860,8 @@
 				DSTROOT = /tmp/RCURLKit.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "RCURLKit/RCURLKit-Prefix.pch";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = RCURLKitMac;
 				PUBLIC_HEADERS_FOLDER_PATH = include/RCURLKit;
 				SDKROOT = macosx;
@@ -933,7 +931,7 @@
 				INFOPLIST_FILE = RCURLKitFramework/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rainycape.RCURLKit;
 				PRODUCT_NAME = RCURLKit;
@@ -964,7 +962,7 @@
 				INFOPLIST_FILE = RCURLKitFramework/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rainycape.RCURLKit;
 				PRODUCT_NAME = RCURLKit;

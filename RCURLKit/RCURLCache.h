@@ -8,8 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSString * const RCURLCacheBeganClearingNotification;
-extern NSString * const RCURLCacheFinishedClearingNotification;
+extern NSString *const RCURLCacheBeganClearingNotification;
+extern NSString *const RCURLCacheFinishedClearingNotification;
 
 typedef NS_ENUM(NSInteger, RCURLCacheDocumentType) {
     RCURLCacheDocumentTypeOther,
@@ -26,9 +26,11 @@ typedef NS_ENUM(NSInteger, RCURLCacheDocumentType) {
 - (NSCachedURLResponse *)cachedResponseForURL:(NSURL *)theURL;
 - (NSData *)cachedDataForURL:(NSURL *)theURL;
 - (void)storeCachedData:(NSData *)theData withURL:(NSURL *)theURL;
-- (void)storeResponse:(NSURLResponse *)response withData:(NSData *)data forRequest:(NSURLRequest *)request;
+- (void)storeResponse:(NSURLResponse *)response
+             withData:(NSData *)data
+           forRequest:(NSURLRequest *)request;
 - (void)deleteCachedResponseForRequest:(NSURLRequest *)aRequest;
-- (NSDictionary *)diskUsage;
+- (void)diskUsage:(void (^)(NSDictionary *diskUsage))completion;
 
 - (void)clear;
 - (void)trimToSize:(unsigned long long)theSize;
