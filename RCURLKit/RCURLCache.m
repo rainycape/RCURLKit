@@ -135,6 +135,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
         self.queue = dispatch_queue_create("RCURLCache", DISPATCH_QUEUE_SERIAL);
         self.pendingLRUUpdates =
             [NSMutableDictionary dictionaryWithCapacity:kMaximumPendingLRUUpdates];
+        [self vacuum];
 #if TARGET_OS_IPHONE
         NSNotificationCenter *defaultCenter = [NSNotificationCenter defaultCenter];
         [defaultCenter addObserver:self
@@ -149,6 +150,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)dealloc
 {
+    [self vacuum];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     database_free(_db);
 }
@@ -473,6 +475,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     dispatch_async(self.queue, ^{
         NSArray *deletions = [self entriesToDeleteForTrimmingToSize:theSize];
         [self deleteEntries:deletions completionHandler:completionHandler];
+        [self vacuum];
     });
 }
 
@@ -481,10 +484,19 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
     dispatch_async(self.queue, ^{
         NSArray *deletions = [self entriesToDeleteForTrimmingToDate:theDate];
         [self deleteEntries:deletions completionHandler:completionHandler];
+        [self vacuum];
     });
 }
 
 #pragma mark - Utility functions
+
+- (void)vacuum
+{
+    if (_db && _db->db) {
+        sqlite3 *db = _db->db;
+        dispatch_async(self.queue, ^{ sqlite3_exec(db, "VACUUM", NULL, NULL, NULL); });
+    }
+}
 
 - (sqlite3_int64)cacheKeyWithURL:(NSURL *)theURL
 {
@@ -536,6 +548,7 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 - (void)applicationWillResignActive:(NSNotification *)aNotification
 {
     [self flushPendingLURUpdates];
+    [self vacuum];
 }
 
 #pragma mark - Singleton
