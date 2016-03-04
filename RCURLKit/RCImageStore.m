@@ -86,7 +86,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 @property(nonatomic, strong) RCImage *image;
 @property(nonatomic, strong) NSData *data;
 @property(nonatomic, strong) NSError *error;
-@property(nonatomic, strong) NSMutableArray *delegates;
+@property(nonatomic, strong) NSMutableArray<RCImageStoreRequest *> *subrequests;
 
 @end
 
@@ -96,23 +96,19 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 {
     if ((self = [super init])) {
         [self setURL:theURL];
-        self.delegates = [NSMutableArray array];
+        self.subrequests = [NSMutableArray array];
     }
     return self;
 }
 
-- (RCImageStoreRequest *)addDelegate:(id<RCImageStoreDelegate>)delegate
-                         withHandler:(RCImageStoreCompletionHandler)handler
-                                size:(CGSize)size
-                        resizingType:(RCImageStoreResizingType)resizingType
+- (void)addRequest:(RCImageStoreRequest *)aRequest
 {
-    RCImageStoreRequest *aReq = [[RCImageStoreRequest alloc] init];
-    aReq.size = size;
-    aReq.resizingType = resizingType;
-    aReq.delegate = delegate;
-    aReq.completionHandler = handler;
-    [self.delegates addObject:aReq];
-    return aReq;
+    if (aRequest) {
+        @synchronized(self.subrequests)
+        {
+            [self.subrequests addObject:aRequest];
+        }
+    }
 }
 
 @end
@@ -263,7 +259,21 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                            completionHandler:(RCImageStoreCompletionHandler)handler
 
 {
-    RCImageStoreRequest *request = NULL;
+
+    if (!theURL) {
+        NSDictionary *userInfo = @{
+            NSLocalizedDescriptionKey : NSLocalizedString(@"nil URL", nil),
+        };
+        NSError *theError =
+            [NSError errorWithDomain:RCImageStoreErrorDomain code:0 userInfo:userInfo];
+        if (theDelegate) {
+            [theDelegate imageStore:self failedWithURL:theURL error:theError];
+        }
+        if (handler) {
+            handler(nil, theURL, theError);
+        }
+        return nil;
+    }
 
     id theKey = [self cacheKeyForURL:theURL size:theSize resizingType:resizingType];
 
@@ -281,25 +291,57 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         }
 
     } else {
-        RCImageStoreInternalRequest *pendingRequest = [self.requestsByURL objectForKey:theURL];
-        BOOL submit = NO;
-        if (!pendingRequest) {
-            submit = YES;
-            pendingRequest = [[RCImageStoreInternalRequest alloc] initWithURL:theURL];
-            if (theURL) {
-                [self.requestsByURL setObject:pendingRequest forKey:theURL];
-            }
+
+        RCImageStoreRequest *subRequest = [[RCImageStoreRequest alloc] init];
+        subRequest.size = theSize;
+        subRequest.resizingType = resizingType;
+        subRequest.delegate = theDelegate;
+        subRequest.completionHandler = handler;
+        if ([subRequest requiresResizing]) {
+            // Try to dispatch this request from the cached resized image without
+            // loading the original image.
+            dispatch_async(dispatch_get_bg_queue(), ^{
+                RCImage *resizedImage = [self cachedImageWithURL:theURL
+                                                            size:subRequest.size
+                                                    resizingType:subRequest.resizingType
+                                                            data:nil];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (subRequest.cancelled) {
+                        return;
+                    }
+                    if (resizedImage) {
+                        [subRequest didReceiveImage:resizedImage withURL:theURL imageStore:self];
+                    } else {
+                        [self addSubRequest:subRequest withURL:theURL];
+                    }
+                });
+
+            });
+        } else {
+            [self addSubRequest:subRequest withURL:theURL];
         }
-        request = [pendingRequest addDelegate:theDelegate
-                                  withHandler:handler
-                                         size:theSize
-                                 resizingType:resizingType];
-        if (submit) {
-            dispatch_async(dispatch_get_bg_queue(), ^{ [self performRequest:pendingRequest]; });
+        return subRequest;
+    }
+
+    return nil;
+}
+
+- (void)addSubRequest:(RCImageStoreRequest *)aRequest withURL:(NSURL *)theURL
+{
+    RCImageStoreInternalRequest *pendingRequest = [self.requestsByURL objectForKey:theURL];
+    BOOL submit = NO;
+    if (!pendingRequest) {
+        submit = YES;
+        pendingRequest = [[RCImageStoreInternalRequest alloc] initWithURL:theURL];
+        if (theURL) {
+            [self.requestsByURL setObject:pendingRequest forKey:theURL];
         }
     }
 
-    return request;
+    [pendingRequest addRequest:aRequest];
+    if (submit) {
+        dispatch_async(dispatch_get_bg_queue(), ^{ [self performRequest:pendingRequest]; });
+    }
 }
 
 - (void)notifyDelegate:(RCImageStoreInternalRequest *)aRequest
@@ -307,7 +349,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     // Always called from the main thread
     RCImage *image = aRequest.image;
     NSURL *theURL = aRequest.URL;
-    for (RCImageStoreRequest *aReq in aRequest.delegates) {
+    for (RCImageStoreRequest *aReq in aRequest.subrequests) {
         if (aReq.cancelled) {
             continue;
         }
@@ -337,7 +379,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
 {
     NSURL *theURL = aRequest.URL;
     NSError *theError = aRequest.error;
-    for (RCImageStoreRequest *aReq in aRequest.delegates) {
+    for (RCImageStoreRequest *aReq in aRequest.subrequests) {
         if (aReq.cancelled) {
             continue;
         }
@@ -476,32 +518,6 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     @autoreleasepool
     {
         NSURL *theURL = [theRequest URL];
-        if (!theURL) {
-            NSDictionary *userInfo = @{
-                NSLocalizedDescriptionKey : NSLocalizedString(@"nil URL", nil),
-            };
-            theRequest.error =
-                [NSError errorWithDomain:RCImageStoreErrorDomain code:0 userInfo:userInfo];
-            dispatch_async(dispatch_get_main_queue(),
-                           ^{ [self notifyFailureToDelegate:theRequest]; });
-            return;
-        }
-        if (theRequest.delegates.count == 1
-            && [[theRequest.delegates objectAtIndex:0] requiresResizing]) {
-            // Check if we can serve this from cache without loading the original image
-            RCImageStoreRequest *delegateRequest = [theRequest.delegates objectAtIndex:0];
-            RCImage *resizedImage = [self cachedImageWithURL:theURL
-                                                        size:delegateRequest.size
-                                                resizingType:delegateRequest.resizingType
-                                                        data:nil];
-            if (resizedImage) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [delegateRequest didReceiveImage:resizedImage withURL:theURL imageStore:self];
-                    [self finishRequest:theRequest];
-                });
-                return;
-            }
-        }
         NSData *theData = nil;
         RCImage *theImage = [self cachedImageWithURL:theURL
                                                 size:CGSizeZero
