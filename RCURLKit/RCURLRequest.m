@@ -41,6 +41,10 @@ NSString *const RCURLRequestErrorKey = @"Error";
 
 - (void)start
 {
+    if (![NSThread isMainThread]) {
+        [self performSelectorOnMainThread:_cmd withObject:nil waitUntilDone:NO];
+        return;
+    }
     if (![self connection]) {
         [self requestWillStart];
         NSURLConnection *theConnection = [[NSURLConnection alloc] initWithRequest:[self request]
