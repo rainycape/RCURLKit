@@ -11,6 +11,8 @@
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
+#else
+#import <AppKit/AppKit.h>
 #endif
 
 #import <sqlite3.h>
@@ -80,7 +82,12 @@ static Database *database_new(NSString *dbPath)
 {
     Database *db = malloc(sizeof(*db));
     BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:dbPath];
-    sqlite3_open([dbPath UTF8String], &db->db);
+    int ret = sqlite3_open([dbPath UTF8String], &db->db);
+    if (ret != SQLITE_OK) {
+        NSLog(@"error opening database at %@: %s", dbPath, sqlite3_errstr(ret));
+        free(db);
+        return NULL;
+    }
     if (!exists) {
         sqlite3_exec(db->db, CREATE_SQL, NULL, NULL, NULL);
         sqlite3_exec(db->db, "CREATE INDEX dt_idx ON cache (dt); ", NULL, NULL, NULL);
@@ -130,17 +137,28 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 {
     if ((self
          = [super initWithMemoryCapacity:memoryCapacity diskCapacity:diskCapacity diskPath:path])) {
-        NSString *thePath = [self databasePath];
-        _db = database_new(thePath);
         self.queue = dispatch_queue_create("RCURLCache", DISPATCH_QUEUE_SERIAL);
+        [self open];
         self.pendingLRUUpdates =
             [NSMutableDictionary dictionaryWithCapacity:kMaximumPendingLRUUpdates];
-        [self vacuum];
-#if TARGET_OS_IPHONE
         NSNotificationCenter *defaultCenter = [NSNotificationCenter defaultCenter];
+#if TARGET_OS_IPHONE
         [defaultCenter addObserver:self
                           selector:@selector(applicationWillResignActive:)
                               name:UIApplicationWillResignActiveNotification
+                            object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(applicationWillTerminate:)
+                              name:UIApplicationWillTerminateNotification
+                            object:nil];
+#else
+        [defaultCenter addObserver:self
+                          selector:@selector(applicationWillResignActive:)
+                              name:NSApplicationWillResignActiveNotification
+                            object:nil];
+        [defaultCenter addObserver:self
+                          selector:@selector(applicationWillTerminate:)
+                              name:NSApplicationWillTerminateNotification
                             object:nil];
 #endif
     }
@@ -150,9 +168,8 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)dealloc
 {
-    [self vacuum];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    database_free(_db);
+    [self close];
 }
 
 #pragma mark - Database path
@@ -181,6 +198,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (BOOL)hasCachedResponseForURL:(NSURL *)theURL
 {
+    if (!_db) {
+        return NO;
+    }
     __block BOOL has = NO;
     dispatch_group_t group = dispatch_group_create();
     dispatch_group_async(group, self.queue, ^{
@@ -201,6 +221,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (NSCachedURLResponse *)cachedResponseForURL:(NSURL *)theURL
 {
+    if (!_db) {
+        return nil;
+    }
     __block NSCachedURLResponse *cachedResponse = nil;
     dispatch_group_t group = dispatch_group_create();
     dispatch_group_async(group, self.queue, ^{
@@ -239,6 +262,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (NSData *)cachedDataForURL:(NSURL *)theURL
 {
+    if (!_db) {
+        return nil;
+    }
     __block NSData *theData = nil;
     dispatch_group_t group = dispatch_group_create();
     dispatch_group_async(group, self.queue, ^{
@@ -266,6 +292,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)storeCachedResponse:(NSCachedURLResponse *)cachedResponse forRequest:(NSURLRequest *)request
 {
+    if (!_db) {
+        return;
+    }
     if (cachedResponse) {
         dispatch_async(self.queue,
                        ^{ [self reallyStoreCachedResponse:cachedResponse forRequest:request]; });
@@ -288,6 +317,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
              withData:(NSData *)data
            forRequest:(NSURLRequest *)request
 {
+    if (!_db) {
+        return;
+    }
     NSCachedURLResponse *cachedResponse =
         [[NSCachedURLResponse alloc] initWithResponse:response data:data];
     [self storeCachedResponse:cachedResponse forRequest:request];
@@ -345,6 +377,9 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)deleteCachedResponseForRequest:(NSURLRequest *)request
 {
+    if (!_db) {
+        return;
+    }
     RCCACHE_LOG(@"Deleting response for %@", [request URL]);
     dispatch_async(self.queue, ^{
         sqlite3_reset(_db->delete_stmt);
@@ -358,6 +393,10 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 - (void)diskUsage:(void (^)(NSDictionary *diskUsage))completion
 {
     if (!completion) {
+        return;
+    }
+    if (!_db) {
+        completion(nil);
         return;
     }
     dispatch_async(self.queue, ^{
@@ -472,6 +511,12 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)trimToSize:(unsigned long long)theSize completionHandler:(void (^)(void))completionHandler
 {
+    if (!_db) {
+        if (completionHandler) {
+            completionHandler();
+        }
+        return;
+    }
     dispatch_async(self.queue, ^{
         NSArray *deletions = [self entriesToDeleteForTrimmingToSize:theSize];
         [self deleteEntries:deletions completionHandler:completionHandler];
@@ -481,6 +526,12 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)trimToDate:(NSDate *)theDate completionHandler:(void (^)(void))completionHandler
 {
+    if (!_db) {
+        if (completionHandler) {
+            completionHandler();
+        }
+        return;
+    }
     dispatch_async(self.queue, ^{
         NSArray *deletions = [self entriesToDeleteForTrimmingToDate:theDate];
         [self deleteEntries:deletions completionHandler:completionHandler];
@@ -515,12 +566,18 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
         count = [pendingLRUUpdates_ count];
     }
     if (count >= kMaximumPendingLRUUpdates) {
-        [self flushPendingLURUpdates];
+        [self flushPendingLURUpdatesWithCompletion:nil];
     }
 }
 
-- (void)flushPendingLURUpdates
+- (void)flushPendingLURUpdatesWithCompletion:(void (^)())completion
 {
+    if (!_db) {
+        if (completion) {
+            completion();
+        }
+        return;
+    }
     NSMutableDictionary *theUpdates = nil;
     @synchronized(self)
     {
@@ -539,7 +596,29 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
                 sqlite3_reset(update_lru_stmt);
             }
             sqlite3_finalize(update_lru_stmt);
+            if (completion) {
+                completion();
+            }
         });
+    }
+}
+
+#pragma mark - Opening and closing
+
+- (BOOL)open
+{
+    if (!_db) {
+        NSString *thePath = [self databasePath];
+        _db = database_new(thePath);
+    }
+    return _db != NULL;
+}
+
+- (void)close
+{
+    if (_db) {
+        database_free(_db);
+        _db = NULL;
     }
 }
 
@@ -547,8 +626,15 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (void)applicationWillResignActive:(NSNotification *)aNotification
 {
-    [self flushPendingLURUpdates];
-    [self vacuum];
+    [self flushPendingLURUpdatesWithCompletion:nil];
+}
+
+- (void)applicationWillTerminate:(NSNotification *)notification
+{
+    // Don't flush pending LRU updates here, since we'll probably
+    // have no time to flush and then close, hence the WAL won't
+    // be cleared.
+    [self close];
 }
 
 #pragma mark - Singleton

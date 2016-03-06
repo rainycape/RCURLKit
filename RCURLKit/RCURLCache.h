@@ -36,6 +36,9 @@ typedef NS_ENUM(NSInteger, RCURLCacheDocumentType) {
 - (void)trimToSize:(unsigned long long)theSize;
 - (void)trimToDate:(NSDate *)theDate;
 
+- (BOOL)open;
+- (void)close;
+
 + (RCURLCache *)sharedCache;
 
 @end
