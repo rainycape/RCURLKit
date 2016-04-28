@@ -621,8 +621,14 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 - (void)close
 {
     if (_db) {
-        database_free(_db);
-        _db = NULL;
+        dispatch_group_t group = dispatch_group_create();
+        dispatch_group_async(group, self.queue, ^{
+            if (_db) {
+                database_free(_db);
+                _db = NULL;
+            }
+        });
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
     }
 }
 
