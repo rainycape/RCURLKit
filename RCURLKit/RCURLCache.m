@@ -262,14 +262,18 @@ NSString *const RCURLCacheFinishedClearingNotification = @"RCURLCacheFinishedCle
 
 - (NSData *)cachedDataForURL:(NSURL *)theURL
 {
-    if (!_db) {
+    Database *db = _db;
+    if (!db) {
         return nil;
     }
     __block NSData *theData = nil;
     dispatch_group_t group = dispatch_group_create();
     dispatch_group_async(group, self.queue, ^{
         sqlite3_int64 key = [self cacheKeyWithURL:theURL];
-        sqlite3_stmt *load_data_stmt = _db->load_data_stmt;
+        sqlite3_stmt *load_data_stmt = db->load_data_stmt;
+        if (!load_data_stmt) {
+            return;
+        }
         sqlite3_reset(load_data_stmt);
         sqlite3_bind_int64(load_data_stmt, 1, key);
         if (sqlite3_step(load_data_stmt) == SQLITE_ROW) {
