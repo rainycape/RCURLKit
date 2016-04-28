@@ -196,7 +196,9 @@
 - (void)updateDiskUsage
 {
     RCURLCache *cache = [self cache] ?: [RCURLCache sharedCache];
-    [self setDiskUsage:[cache diskUsage]];
+    [cache diskUsage:^(NSDictionary *diskUsage) {
+        dispatch_async(dispatch_get_main_queue(), ^{ [self setDiskUsage:diskUsage]; });
+    }];
 }
 
 #pragma mark - Action handlers
