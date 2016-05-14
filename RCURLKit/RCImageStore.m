@@ -822,7 +822,7 @@ NSString *const RCImageStoreDidFinishRequestNotification =
         for (CFIndex ii = 0; ii < count; ii++) {
             if (CFGetRetainCount(values[ii]) == 1) {
                 // Only the cache is retaining this image, check LRU
-                // and remove it appropriate.
+                // and remove if appropriate.
                 id aKey = (__bridge id)(keys[ii]);
                 time_t lru = [[self.cacheLRU objectForKey:aKey] longValue];
                 if (lru == 0 || now - lru < -kMaxLRU) {
