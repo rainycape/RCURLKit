@@ -107,6 +107,9 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
           withData:(NSData *)theData
           response:(NSURLResponse *)response
             forURL:(NSURL *)theURL;
+
+- (void)purgeImageFromMemory:(UIImage *)theImage;
+
 #else
 
 - (NSImage *)cachedImageWithURL:(NSURL *)theURL;
@@ -114,6 +117,8 @@ extern NSString *const RCImageStoreDidFinishRequestNotification;
           withData:(NSData *)theData
           response:(NSURLResponse *)response
             forURL:(NSURL *)theURL;
+
+- (void)purgeImageFromMemory:(NSImage *)theImage;
 
 #endif
 

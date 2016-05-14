@@ -761,6 +761,23 @@ NSString *const RCImageStoreDidFinishRequestNotification =
     return theURL;
 }
 
+- (void)purgeImageFromMemory:(RCImage *)theImage
+{
+    @synchronized((__bridge NSDictionary *)_cache)
+    {
+        CFIndex count = CFDictionaryGetCount(_cache);
+        const void *keys[count];
+        const void *values[count];
+        CFDictionaryGetKeysAndValues(_cache, keys, values);
+        for (CFIndex ii = 0; ii < count; ii++) {
+            if (values[ii] == (__bridge const void *)(theImage)) {
+                CFDictionaryRemoveValue(_cache, keys[ii]);
+                break;
+            }
+        }
+    }
+}
+
 - (NSString *)imageFormatWithData:(NSData *)theData
 {
     NSString *imageFormat = nil;
