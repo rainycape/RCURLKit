@@ -824,7 +824,11 @@ NSString *const RCImageStoreDidFinishRequestNotification =
                 // Only the cache is retaining this image, check LRU
                 // and remove if appropriate.
                 id aKey = (__bridge id)(keys[ii]);
-                time_t lru = [[self.cacheLRU objectForKey:aKey] longValue];
+                time_t lru;
+                @synchronized(self.cacheLRU)
+                {
+                    lru = [[self.cacheLRU objectForKey:aKey] longValue];
+                }
                 if (lru == 0 || lru - now < -kMaxLRU) {
                     CFDictionaryRemoveValue(_cache, keys[ii]);
                 }
